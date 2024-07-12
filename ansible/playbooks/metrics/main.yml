@@ -1,0 +1,86 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/setup
+        state: directory
+        mode: '0744'
+      when: "deployment_enabled"
+
+    - name: Copy operator setup manifests to target directory
+      copy:
+        src: "{{ item }}"
+        dest: "~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/setup"
+        mode: '0644'
+      with_fileglob:
+        - "prometheus-operator/manifests/setup/*"
+      when: "deployment_enabled"
+
+    - name: Create dashboards directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/dashboards
+        state: directory
+        mode: '0744'
+      when: "deployment_enabled"
+
+    - name: Copy operator dashboards to target directory
+      copy:
+        src: "{{ item }}"
+        dest: "~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/dashboards"
+        mode: '0644'
+      with_fileglob:
+        - "prometheus-operator/manifests/dashboards/*"
+      when: "deployment_enabled"
+    
+    - name: Copy operator manifests to target directory
+      copy:
+        src: "{{ item }}"
+        dest: "~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator"
+        mode: '0644'
+      with_fileglob:
+        - "prometheus-operator/manifests/*"
+      when: "deployment_enabled"
+    
+    - name: Generate grafana secret spec
+      ansible.builtin.template:
+        src: grafana-config.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/grafana-config.yaml
+        mode: '0644'
+      when: "deployment_enabled"
+
+    - name: Generate grafana ingress spec
+      ansible.builtin.template:
+        src: grafana-ingress.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/grafana-ingress.yaml
+        mode: '0644'
+      when: deployment_enabled and publicly_expose_grafana
+
+    - name: Find JSON files in the specified directory
+      find:
+        paths: "prometheus-operator/manifests/dashboards/"
+        patterns: "*.json"
+      register: dashboard_files
+
+    - name: Extract file names without extension
+      set_fact:
+        dashboards: "{{ dashboard_files.files | map(attribute='path') | map('regex_replace', '\\.json$', '') | map('basename') | list }}"
+
+    - name: Generate grafana deployment spec
+      ansible.builtin.template:
+        src: grafana-deployment.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/grafana-deployment.yaml
+        mode: '0644'
+      when: "deployment_enabled"
+
+    - name: Generate grafana kustomize spec
+      ansible.builtin.template:
+        src: prometheus-operator/manifests/dashboards/kustomization.yaml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/dashboards/kustomization.yaml
+        mode: '0644'
+      when: "deployment_enabled"

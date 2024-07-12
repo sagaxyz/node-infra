@@ -1,0 +1,44 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: spc-rules
+  namespace: sagasrv-metrics
+spec:
+  groups:
+  - name: spc-group
+    rules:
+    - alert: SpcJailedValidator
+      annotations:
+        description: SPC Jailed validator *{{ $labels.moniker }}*
+        summary: Jailed validator
+      expr: sum(cosmos_validators_jailed{app="spc-cosmos-exporter"}) by (moniker) > 0
+      labels:
+        severity: critical
+    - alert: SpcByzantineValidator
+      annotations:
+        description: Byzantine validator(s) on SPC ({{ $value }})
+        summary: SPC Byzantine validator
+      expr: sum(cometbft_consensus_byzantine_validators{app="spc"}) > 0
+      labels:
+        severity: critical
+    - alert: SpcMissedBlocks
+      annotations:
+        description: "*{{ $labels.moniker }}* missed *{{ $value }}* blocks on *SPC* in 5m"
+        summary: SPC Missed more than 10 blocks in the last 5m
+      expr: delta(cosmos_validators_missed_blocks{app="spc-cosmos-exporter"}[5m]) > 10
+      labels:
+        severity: critical
+    - alert: SpcNotProducingBlocks
+      annotations:
+        description: "SPC didn't produced blocks in the last minute"
+        summary: SPC no blocks produced in the last minute
+      expr: delta(cometbft_consensus_height{app="spc"}[1m]) < 1
+      labels:
+        severity: critical
+    - alert: SpcMempoolTooBig
+      annotations:
+        description: Mempool for SPC is *{{ $value }}*
+        summary: SPC Mempool bigger than 300
+      expr: sum(cometbft_mempool_size{app="spc"}) > 300
+      labels:
+        severity: warning

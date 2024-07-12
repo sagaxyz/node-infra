@@ -1,0 +1,92 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars_files:
+    - vars/main.yml
+
+  vars:
+    chainlet_template_dest: ~/.ansible/deployments/{{ eks_cluster_name }}/chainlets/chainlet.yml.tmpl
+
+  tasks:
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}
+        state: directory
+        mode: '0744'
+
+    - name: Generate Controller Namespace spec
+      ansible.builtin.template:
+        src: controller-ns.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-ns.yml
+        mode: '0644'
+
+    - name: Generate Controller Secret spec
+      ansible.builtin.template:
+        src: secret.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-secret.yml
+        mode: '0644'
+
+    - name: Generate Controller Deployment spec
+      ansible.builtin.template:
+        src: controller-deployment.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-deployment.yml
+        mode: '0644'
+
+    - name: Generate Controller Service spec
+      ansible.builtin.template:
+        src: controller-service.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-service.yml
+        mode: '0644'
+
+    - name: Create chainlets config directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}/chainlets
+        state: directory
+        mode: '0744'
+
+    - name: Generate chainlets config spec
+      ansible.builtin.template:
+        src: config/kustomization.yml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/chainlets/kustomization.yml
+        mode: '0644'
+
+    - name: Copy chainlet lb template
+      copy:
+        src: config/lb.yml.tmpl
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/chainlets/lb.yml.tmpl
+
+    - name: Define variable explorer_url_suffixes
+      set_fact:
+        explorer_url_suffixes: "{{ [explorer_generic_url_suffix, explorer_url_suffix] if explorer_generic_url_suffix is defined else [explorer_url_suffix] }}"
+        rpc_url_suffixes: "{{ [rpc_generic_url_suffix, url_suffix] if rpc_generic_url_suffix is defined else [url_suffix] }}"
+      when: rpc_enabled or explorer_sagaevm
+
+    - name: Generate chainlet template
+      ansible.builtin.template:
+        src: config/chainlet.yml.tmpl.j2
+        dest: "{{ chainlet_template_dest }}"
+        mode: '0644'
+        variable_start_string: "%%%" # to disable golang variables substitutions
+        variable_end_string: "%%%"
+
+    - name: Get deployments list
+      shell: cat {{ chainlet_template_dest }} | grep -v "^{" | yq eval-all 'select(.kind == "Deployment") | .metadata.name' | sed 's/{{ '{{' }} .Name {{ '}}' }}/node/g' | grep -v "^\-\-\-"
+      register: chainlet_deployments_output
+
+    - name: Set deployment list as fact
+      set_fact:
+        chainlet_deployment_list: "{{ chainlet_deployments_output.stdout.splitlines() }}"
+
+    - name: Ensure there are chainlet deployments
+      assert:
+        that:
+          - chainlet_deployments_output is defined
+          - chainlet_deployments_output | length > 0
+        fail_msg: "chainlet_deployments_output is undefined or empty"
+        success_msg: "Deployments {{ chainlet_deployment_list }}"
+
+    - name: Generate controller config file
+      ansible.builtin.template:
+        src: config/controller.yml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/chainlets/controller.yml
+        mode: '0644'

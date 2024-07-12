@@ -1,0 +1,50 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  pre_tasks:
+    - name: Install cloudformation dependencies
+      ansible.builtin.pip:
+        name:
+          - boto3>=1.18.0
+          - botocore>=1.21.0
+
+  vars:
+    karpenter_node_role: "KarpenterNodeRole-{{ eks_cluster_name }}"
+    karpenter_instance_profile: "KarpenterInstanceProfile-{{ eks_cluster_name }}"
+    karpenter_controller_role: "KarpenterControllerRole-{{ eks_cluster_name }}"
+
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+
+    - name: Delete karpenter instance profile
+      amazon.aws.iam_instance_profile:
+        state: absent
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        name: "{{ karpenter_instance_profile }}"
+
+    - name: Delete karpenter node role
+      amazon.aws.iam_role:
+        state: absent
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        name: "{{ karpenter_node_role }}"
+
+    - name: Delete karpenter controller policy
+      amazon.aws.iam_policy:
+        state: absent
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        iam_type: role
+        iam_name: "{{ karpenter_controller_role }}"
+        policy_name: "KarpenterControllerPolicy-{{ eks_cluster_name }}"
+
+    - name: Delete karpenter controller role
+      amazon.aws.iam_role:
+        state: absent
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        name: "{{ karpenter_controller_role }}"

@@ -1,0 +1,215 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  tasks:
+    - name: Get ingress controller nlb info
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        kind: Service
+        name: ingress-nginx-controller
+        namespace: ingress-nginx
+        wait: false
+      register: nlb_info
+
+    - name: Set the load balancer URL as a fact.
+      set_fact:
+        nlb_host: "{{ (nlb_info['resources'][0]['status']['loadBalancer']['ingress'][0]['hostname'] | default('')) }}"
+      when: aws_environment | bool
+
+    - name: Delete the CNAME record in Route53 (if configured).
+      amazon.aws.route53:
+        profile: "{{ aws_profile }}"
+        zone: "{{ route53_zone }}"
+        record: "{{ ingress_external_address_host }}"
+        state: absent
+        type: CNAME
+        ttl: 300
+        value: "{{ nlb_host }}."
+        overwrite: true
+        wait: true
+      when:
+        - aws_environment | bool
+        - route53_zone is defined
+        - route53_zone != ''
+        - ingress_external_address_host is defined
+        - ingress_external_address_host != ''
+        - nlb_host != ''
+
+    - name: Delete the CNAME record in explorers Route53 (if configured).
+      amazon.aws.route53:
+        profile: "{{ aws_profile }}"
+        zone: "{{ explorers_route53_zone }}"
+        record: "{{ explorer_ingress_external_address_host }}"
+        state: absent
+        type: CNAME
+        ttl: 300
+        value: "{{ nlb_host }}."
+        overwrite: true
+        wait: true
+      when:
+        - aws_environment | bool
+        - explorers_route53_zone is defined
+        - explorers_route53_zone != ''
+        - explorer_ingress_external_address_host != ''
+        - nlb_host != ''
+        - explorer_sagaevm
+
+    - name: Delete ingress-controller service
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/ingress-controller.yml
+
+    - name: Delete ingress-controller service pre
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/ingress-controller-pre.yml
+
+    - name: Get elb info spc
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        kind: Service
+        name: spc
+        namespace: sagasrv-spc
+        wait: false
+      register: elb_info
+
+    - name: Set the load balancer URL as a fact.
+      set_fact:
+        spc_lb_host: "{{ (elb_info['resources'][0]['status']['loadBalancer']['ingress'][0]['hostname'] | default('')) }}"
+      when: aws_environment | bool
+
+    - name: Delete the CNAME record in Route53 for spc (if configured).
+      route53:
+        profile: "{{ aws_profile }}"
+        zone: '{{ route53_zone }}'
+        record: '{{ spc_external_address_host }}'
+        state: absent
+        type: CNAME
+        ttl: 300
+        value: '{{ spc_lb_host }}.'
+        overwrite: true
+        wait: true
+      when:
+        - aws_environment | bool
+        - route53_zone is defined
+        - route53_zone != ''
+        - spc_external_address_host != ''
+        - spc_lb_host != ''
+
+    - name: Get controller elb info spc
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        kind: Service
+        name: controller
+        namespace: sagasrv-controller
+      register: controller_elb_info
+
+    - name: Set the controller load balancer URL as a fact.
+      set_fact:
+        controller_lb_host: "{{ (controller_elb_info['resources'][0]['status']['loadBalancer']['ingress'][0]['hostname'] | default('')) }}"
+      when: aws_environment | bool
+
+    - name: Delete the CNAME record in Route53 for controller (if configured).
+      route53:
+        profile: "{{ aws_profile }}"
+        zone: '{{ route53_zone }}'
+        record: '{{ controller_external_address_host }}'
+        state: absent
+        type: CNAME
+        ttl: 300
+        value: '{{ controller_lb_host }}.'
+        overwrite: true
+        wait: true
+      when:
+        - aws_environment | bool
+        - route53_zone is defined
+        - route53_zone != ''
+        - controller_external_address_host is defined
+        - controller_external_address_host != ''
+        - controller_lb_host != ''
+
+    - name: Delete SPC Deployment
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-deployment.yml
+
+    - name: Delete SPC Service spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-service.yml
+
+    - name: Delete SPC Namespace
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-ns.yml
+
+    - name: Delete Controller Deployment
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-deployment.yml
+
+    - name: Delete Controller Service spec
+      kubernetes.core.k8s:
+        state: absent
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-service.yml
+
+    - name: Delete Controller Namespace
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-ns.yml
+
+    - name: Delete SPC Secret spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-secret.yml
+
+    - name: Delete Controller Secret spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-secret.yml
+
+    - name: Delete fluentd Deployment
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/fluentd-deployment.yml
+      when: elasticsearch_info is defined
+
+    - name: Delete prometheus operator spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        definition: "{{ lookup('template', '{{ item }}') | from_yaml }}"
+      with_fileglob:
+        - "~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/*.yaml"
+      ignore_errors: true
+
+    - name: Delete prometheus operator setup spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        definition: "{{ lookup('template', '{{ item }}') | from_yaml }}"
+      with_fileglob:
+        - "~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/setup/*.yaml"
+
+    - name: Get chainlet namaspaces
+      shell: kubectl get ns --kubeconfig {{ k8s_kubeconfig }} -o json --show-managed-fields | jq -r '.items[] | select( .metadata.managedFields[0].manager == "saga-controller") | .metadata.name'
+      register: chainlet_namespaces
+
+    - name: Delete all the resources in the chianlet namespaces
+      shell: kubectl delete all --all -n {{ item }} --kubeconfig {{ k8s_kubeconfig }}
+      loop: "{{ chainlet_namespaces.stdout_lines }}"
+
+    - name: Delete all namespaces
+      shell: kubectl delete namespace {{ item }} --kubeconfig {{ k8s_kubeconfig }}
+      loop: "{{ chainlet_namespaces.stdout_lines }}"

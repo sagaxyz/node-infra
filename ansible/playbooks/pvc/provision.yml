@@ -1,0 +1,75 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  pre_tasks:
+    - name: Install cloudformation dependencies
+      ansible.builtin.pip:
+        name:
+          - kubernetes>=12.0.0
+        extra_args: --user
+
+  tasks:
+
+    - name: Create IAM role for EBS CSI driver
+      amazon.aws.iam_role:
+        name: "{{ eks_cluster_name }}-ebs-role"
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        managed_policies:
+          - arn:aws:iam::aws:policy/service-role/AmazonEBSCSIDriverPolicy
+        assume_role_policy_document: >
+          {
+            "Version": "2012-10-17",
+            "Statement": [
+              {
+                "Effect": "Allow",
+                "Principal": {
+                  "Federated": "arn:aws:iam::{{ account_id }}:oidc-provider/{{ oidc_provider }}"
+                },
+                "Action": "sts:AssumeRoleWithWebIdentity",
+                "Condition": {
+                  "StringEquals": {
+                    "{{ oidc_provider }}:aud": "sts.amazonaws.com",
+                    "{{ oidc_provider }}:sub": "system:serviceaccount:kube-system:ebs-csi-controller-sa"
+                  }
+                }
+              }
+            ]
+          }
+        state: present
+      register: ebs_role_info
+
+    - name: Install Ebs csi driver
+      kubernetes.core.helm:
+        name: aws-ebs-csi-driver
+        chart_ref: "https://github.com/kubernetes-sigs/aws-ebs-csi-driver/releases/download/helm-chart-aws-ebs-csi-driver-2.17.2/aws-ebs-csi-driver-2.17.2.tgz"
+        release_namespace: kube-system
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        values:
+          controller:
+            serviceAccount:
+              annotations:
+                name: ebs-csi-controller-sa
+                eks.amazonaws.com/role-arn: "{{ ebs_role_info.arn }}"
+        wait: true
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}
+        state: directory
+        mode: '0744'
+
+    - name: Generate spec for default StorageClass
+      ansible.builtin.template:
+        src: storage-class.yml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/storage-class.yml
+        mode: '0644'
+
+    - name: Apply default StorageClass
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/storage-class.yml
+        wait: true

@@ -1,0 +1,78 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  pre_tasks:
+    - name: Install cloudformation dependencies
+      ansible.builtin.pip:
+        name:
+          - boto3>=1.18.0
+          - botocore>=1.21.0
+        extra_args: --user
+
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Ensure VPC exists via CloudFormation.
+      cloudformation:
+        stack_name: "{{ eks_vpc_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ aws_profile }}"
+        disable_rollback: false
+        template: cloudformation/vpc.yml
+        template_parameters:
+          Region: "{{ aws_region }}"
+          VPCName: "{{ eks_vpc_name }}"
+        tags:
+          stack: "{{ eks_vpc_name }}"
+          application: "{{ eks_vpc_name }}"
+      register: vpc_info
+
+    - name: Add to stack_outputs.
+      set_fact:
+        stack_outputs: "{{ stack_outputs | combine(vpc_info['stack_outputs']) }}"
+
+    - name: Ensure EKS Cluster exists via CloudFormation.
+      cloudformation:
+        stack_name: "{{ eks_cluster_name }}"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ aws_profile }}"
+        disable_rollback: false
+        template: cloudformation/eks-cluster.yml
+        template_parameters:
+          ClusterName: "{{ eks_cluster_name }}"
+          Subnets: "{{ stack_outputs.Subnets }}"
+          VpcId: "{{ stack_outputs.VpcId }}"
+        tags:
+          stack: "{{ eks_cluster_name }}"
+          application: "{{ eks_cluster_name }}-app"
+      register: eks_cluster_info
+
+    - name: Add to stack_outputs.
+      set_fact:
+        stack_outputs: "{{ stack_outputs | combine(eks_cluster_info['stack_outputs']) }}"
+
+    - name: Ensure EKS Node Group exists via CloudFormation.
+      cloudformation:
+        stack_name: "{{ eks_cluster_name }}-nodegroup"
+        state: present
+        region: "{{ aws_region }}"
+        profile: "{{ aws_profile }}"
+        disable_rollback: false
+        template: cloudformation/eks-nodegroup.yml
+        template_parameters:
+          ClusterName: "{{ eks_cluster_name }}"
+          NodeGroupName: "{{ eks_nodegroup_name }}"
+          NodeGroupDesiredCapacity: "{{ eks_nodegroup_cluster_size }}"
+          NodeInstanceType: "{{ eks_nodegroup_instance_type }}"
+          Subnets: "{{ stack_outputs.Subnets }}"
+        tags:
+          stack: "{{ eks_cluster_name }}-nodegroup"
+          application: "{{ eks_cluster_name }}-nodegroup-app"
+      register: eks_nodegroup_info
+
+    - name: Update kube config
+      ansible.builtin.shell: "aws eks --region {{ aws_region }} update-kubeconfig --name {{ eks_cluster_name }} --kubeconfig {{ k8s_kubeconfig }} --profile {{ aws_profile }}"

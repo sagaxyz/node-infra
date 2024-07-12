@@ -1,0 +1,13 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  tasks:
+    - name: Delete all target groups
+      shell: for arn in $(aws elbv2 describe-target-groups --query 'TargetGroups[].TargetGroupArn' --output text --profile {{ aws_profile }} --region {{ aws_region }}); do aws elbv2 delete-target-group --target-group-arn $arn --profile {{ aws_profile }} --region {{ aws_region }} || true; done
+
+    - name: Delete all nodes by karpenter
+      shell: aws ec2 describe-instances --filters "Name=tag:aws:eks:cluster-name,Values={{ eks_cluster_name }}" --query 'Reservations[*].Instances[*].InstanceId' --output text --profile {{ aws_profile }} --region {{ aws_region }} | while read instance_id; do aws ec2 terminate-instances --instance-ids $instance_id --profile {{ aws_profile }} --region {{ aws_region }} || true; done
+      register: delete_all_nodes_output
+
+    - name: Delete all PVs
+      shell: aws ec2 describe-volumes --query 'Volumes[*].{ID:VolumeId}' --filters "Name=tag:cluster,Values={{ eks_cluster_name }}" --profile {{ aws_profile }} --region {{ aws_region }} | jq -r '.[] | .ID' | while read volume_id; do aws ec2 delete-volume --volume-id $volume_id --profile {{ aws_profile }} --region {{ aws_region }} || true; done

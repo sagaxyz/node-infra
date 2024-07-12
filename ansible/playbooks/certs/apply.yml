@@ -1,0 +1,193 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars:
+    jsonrpc_host: "*.jsonrpc.{{url_suffix}}"
+    ws_host: "*.ws.{{url_suffix}}"
+    explorer_tls_enabled: "{{ metrics_enabled or explorer_sagaevm }}"
+
+  tasks:
+    - name: Get all certificates
+      shell: aws acm list-certificates --profile {{ aws_profile }} --region {{ aws_region }} --query "CertificateSummaryList"
+      register: certificates_list_output
+      when: aws_environment | bool
+
+    - name: Create missing certificates
+      shell: aws acm request-certificate --profile {{ aws_profile }} --region {{ aws_region }} --domain-name "{{ item }}" --validation-method DNS
+      when: not certificate_info
+      vars:
+        certificate_info: "{{ certificates_list_output.stdout | from_json | json_query('[?DomainName==`' + item + '`]') }}"
+      with_items:
+        - "{{ ingress_external_address_host }}"
+        - "{{ explorer_ingress_external_address_host }}"
+        - "{{ jsonrpc_host }}"
+        - "{{ ws_host }}"
+
+    - name: Check pending validations
+      shell: aws acm list-certificates  --profile {{ aws_profile }} --region {{ aws_region }} --query "CertificateSummaryList[?Status=='PENDING_VALIDATION'].DomainName"
+      register: pending_certificates_output
+
+    - name: Fail if pending validations
+      fail:
+        msg: "There are pending validations. Login in the AWS console, Certificate Manager and create Route53 records for each pending certificate."
+      loop: "{{ pending_certificates_output.stdout | from_json }}"
+
+    - name: Get ingress certificate
+      shell: aws acm list-certificates --profile {{ aws_profile }} --region {{ aws_region }} --query "CertificateSummaryList[?DomainName=='{{ ingress_external_address_host }}'].CertificateArn" | jq -r '.[0]'
+      register: ingress_certificate_output
+      when: aws_environment | bool
+
+    - name: Set ingress certificate ARN as a fact
+      set_fact:
+        ingress_certificate_arn: "{{ ingress_certificate_output.stdout }}"
+
+    - name: Get ingress certificate (explorer)
+      shell: aws acm list-certificates --profile {{ aws_profile }} --region {{ aws_region }} --query "CertificateSummaryList[?DomainName=='{{ explorer_ingress_external_address_host }}'].CertificateArn" | jq -r '.[0]'
+      register: explorer_ingress_certificate_output
+      when: aws_environment | bool
+
+    - name: Set ingress certificate ARN as a fact (explorer)
+      set_fact:
+        explorer_ingress_certificate_arn: "{{ explorer_ingress_certificate_output.stdout }}"
+
+    - name: Get ingress certificate (jsonrpc)
+      shell: aws acm list-certificates --profile {{ aws_profile }} --region {{ aws_region }} --query "CertificateSummaryList[?DomainName=='{{ jsonrpc_host }}'].CertificateArn" | jq -r '.[0]'
+      register: jsonrpc_certificate_output
+      when:
+        - aws_environment | bool
+        - rpc_enabled | bool
+
+    - name: Set ingress certificate ARN as a fact (jsonrpc)
+      set_fact:
+        jsonrpc_certificate_arn: "{{ jsonrpc_certificate_output.stdout }}"
+      when: rpc_enabled | bool
+
+    - name: Get ingress certificate (ws)
+      shell: aws acm list-certificates --profile {{ aws_profile }} --region {{ aws_region }} --query "CertificateSummaryList[?DomainName=='{{ ws_host }}'].CertificateArn" | jq -r '.[0]'
+      register: ws_certificate_output
+      when:
+        - aws_environment | bool
+        - rpc_enabled | bool
+
+    - name: Set ingress certificate ARN as a fact (ws)
+      set_fact:
+        ws_certificate_arn: "{{ ws_certificate_output.stdout }}"
+      when: rpc_enabled | bool
+    
+    - name: Get ingress controller nlb info
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        kind: Service
+        name: ingress-nginx-controller
+        namespace: ingress-nginx
+        wait: false
+      register: nlb_info
+
+    - name: Get nlb arn info
+      shell: aws elbv2 describe-load-balancers --profile {{ aws_profile }} --region {{ aws_region }} --query "LoadBalancers[?DNSName=='{{ nlb_host }}'].LoadBalancerArn" | jq -r '.[0]'
+      vars:
+        nlb_host: "{{ (nlb_info['resources'][0]['status']['loadBalancer']['ingress'][0]['hostname'] | default('')) }}"
+      when: aws_environment | bool
+      register: nlb_arn_ouput
+
+    - name: Get 443 listener arn
+      shell: aws elbv2 describe-listeners --profile {{ aws_profile }} --region {{ aws_region }} --load-balancer-arn {{ nlb_arn_ouput.stdout }} --query 'Listeners[?Port==`443`]' | jq -r '.[0]'
+      register: nlb_listener_info
+
+    - name: Set the listener ARN as a fact
+      set_fact:
+        nlb_listener_arn: "{{ nlb_listener_info.stdout | from_json | json_query('ListenerArn') }}"
+
+    - name: Add listener certificate for ingress controller
+      shell: aws elbv2 modify-listener --profile {{ aws_profile }} --region {{ aws_region }} --listener-arn {{ nlb_listener_arn }} --protocol TLS --certificates 'CertificateArn={{ ingress_certificate_arn }}'
+
+    - name: Add listener certificate for ingress controller (explorer)
+      shell: aws elbv2 add-listener-certificates --profile {{ aws_profile }} --region {{ aws_region }} --listener-arn {{ nlb_listener_arn }} --certificates 'CertificateArn={{ explorer_ingress_certificate_arn }}'
+      when: explorer_tls_enabled | bool
+
+    - name: Add listener certificate for ingress controller (jsonrpc)
+      shell: aws elbv2 add-listener-certificates --profile {{ aws_profile }} --region {{ aws_region }} --listener-arn {{ nlb_listener_arn }} --certificates 'CertificateArn={{ jsonrpc_certificate_arn }}'
+      when: rpc_enabled | bool
+
+    - name: Add listener certificate for ingress controller (ws)
+      shell: aws elbv2 add-listener-certificates --profile {{ aws_profile }} --region {{ aws_region }} --listener-arn {{ nlb_listener_arn }} --certificates 'CertificateArn={{ ws_certificate_arn }}'
+      when: rpc_enabled | bool
+
+    - name: Get elb info spc
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        kind: Service
+        name: spc
+        namespace: sagasrv-spc
+        wait: false
+      register: spc_elb_info
+      when: rpc_enabled | bool
+
+    - name: Get spc elb arn info
+      shell: aws elbv2 describe-load-balancers --profile {{ aws_profile }} --region {{ aws_region }} --query "LoadBalancers[?DNSName=='{{ spc_elb_host }}'].LoadBalancerArn" | jq -r '.[0]'
+      vars:
+        spc_elb_host: "{{ (spc_elb_info['resources'][0]['status']['loadBalancer']['ingress'][0]['hostname'] | default('')) }}"
+      when:
+        - aws_environment | bool
+        - rpc_enabled | bool
+      register: spc_elb_arn_ouput
+
+    - name: Get 443 listener arn
+      shell: aws elbv2 describe-listeners --profile {{ aws_profile }} --region {{ aws_region }} --load-balancer-arn {{ spc_elb_arn_ouput.stdout }} --query 'Listeners[?Port==`443`]' | jq -r '.[0]'
+      register: spc_elb_listener_info
+      when: rpc_enabled | bool
+
+    - name: Set the listener ARN as a fact
+      set_fact:
+        spc_elb_listener_arn: "{{ spc_elb_listener_info.stdout | from_json | json_query('ListenerArn') }}"
+      when: rpc_enabled | bool
+
+    - name: Add listener certificate for spc
+      shell: aws elbv2 modify-listener --profile {{ aws_profile }} --region {{ aws_region }} --listener-arn {{ spc_elb_listener_arn }} --protocol TLS --certificates 'CertificateArn={{ ingress_certificate_arn }}'
+      when: rpc_enabled | bool
+
+    - name: Get 1317 listener arn
+      shell: aws elbv2 describe-listeners --profile {{ aws_profile }} --region {{ aws_region }} --load-balancer-arn {{ spc_elb_arn_ouput.stdout }} --query 'Listeners[?Port==`1317`]' | jq -r '.[0]'
+      register: spc_elb_1317_listener_info
+      when: rpc_enabled | bool
+
+    - name: Set the listener ARN as a fact
+      set_fact:
+        spc_elb_1317_listener_arn: "{{ spc_elb_1317_listener_info.stdout | from_json | json_query('ListenerArn') }}"
+      when: rpc_enabled | bool
+
+    - name: Add listener certificate for spc
+      shell: aws elbv2 modify-listener --profile {{ aws_profile }} --region {{ aws_region }} --listener-arn {{ spc_elb_1317_listener_arn }} --protocol TLS --certificates 'CertificateArn={{ ingress_certificate_arn }}'
+      when: rpc_enabled | bool
+
+    - name: Get controller elb info spc
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        kind: Service
+        name: controller
+        namespace: sagasrv-controller
+      register: controller_elb_info
+      when: rpc_enabled | bool
+
+    - name: Get spc elb arn info
+      shell: aws elbv2 describe-load-balancers --profile {{ aws_profile }} --region {{ aws_region }} --query "LoadBalancers[?DNSName=='{{ controller_elb_host }}'].LoadBalancerArn" | jq -r '.[0]'
+      vars:
+        controller_elb_host: "{{ (controller_elb_info['resources'][0]['status']['loadBalancer']['ingress'][0]['hostname'] | default('')) }}"
+      when:
+        - aws_environment | bool
+        - rpc_enabled | bool
+      register: controller_elb_arn_ouput
+
+    - name: Get 443 listener arn
+      shell: aws elbv2 describe-listeners --profile {{ aws_profile }} --region {{ aws_region }} --load-balancer-arn {{ controller_elb_arn_ouput.stdout }} --query 'Listeners[?Port==`443`]' | jq -r '.[0]'
+      register: controller_elb_listener_info
+      when: rpc_enabled | bool
+
+    - name: Set the listener ARN as a fact
+      set_fact:
+        controller_elb_listener_arn: "{{ controller_elb_listener_info.stdout | from_json | json_query('ListenerArn') }}"
+      when: rpc_enabled | bool
+
+    - name: Add listener certificate for controller
+      shell: aws elbv2 modify-listener --profile {{ aws_profile }} --region {{ aws_region }} --listener-arn {{ controller_elb_listener_arn }} --protocol TLS --certificates 'CertificateArn={{ ingress_certificate_arn }}'
+      when: rpc_enabled | bool

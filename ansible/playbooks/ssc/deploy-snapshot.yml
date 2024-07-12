@@ -1,0 +1,29 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Generate SSC snapshot cronjob spec
+      ansible.builtin.template:
+        src: snapshot/ssc-snapshot-cronjob.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/ssc-snapshot-cronjob.yml
+        mode: '0644'
+      when: snapshot.ssc is defined
+
+    - name: Create SSC namespace
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: sagasrv-ssc
+        state: present
+        kubeconfig: "{{ k8s_kubeconfig }}"
+
+    - name: Apply SSC snapshot cronjob spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/ssc-snapshot-cronjob.yml
+      when: snapshot.ssc is defined
+

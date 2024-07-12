@@ -1,0 +1,142 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  pre_tasks:
+    - name: Install cloudformation dependencies
+      ansible.builtin.pip:
+        name:
+          - boto3>=1.18.0
+          - botocore>=1.21.0
+
+  vars:
+    karpenter_node_role: "KarpenterNodeRole-{{ eks_cluster_name }}"
+    karpenter_instance_profile: "KarpenterInstanceProfile-{{ eks_cluster_name }}"
+
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+
+    - name: Run Python script to get or create OIDC provider
+      ansible.builtin.script: get_or_create_oidc_provider.py "{{ eks_cluster_name }}" "{{ aws_profile }}" "{{ aws_region }}"
+      args:
+        executable: python3
+      register: oidc_provider_output
+
+    - name: Set OIDC provider ARN variable
+      ansible.builtin.set_fact:
+        oidc_provider_arn: "{{ oidc_provider_output.stdout }}"
+
+    - name: Extract account ID
+      set_fact:
+        account_id: "{{ oidc_provider_arn | regex_search('arn:aws:iam::(\\d+):', '\\1') | first }}"
+
+    - name: List Nodegroups
+      ansible.builtin.shell: >
+        aws eks list-nodegroups --cluster-name "{{ eks_cluster_name }}" --query 'nodegroups' --output text --profile {{ aws_profile }} --region {{ aws_region }}
+      register: nodegroups_result
+
+    - name: Tag Nodegroups
+      ansible.builtin.shell: >
+        aws ec2 create-tags --tags "Key=karpenter.sh/discovery,Value={{ eks_cluster_name }}" --resources $(aws eks describe-nodegroup --cluster-name {{ eks_cluster_name }} --nodegroup-name {{ item }} --query 'nodegroup.subnets' --output text --profile {{ aws_profile }} --region {{ aws_region }}) --profile {{ aws_profile }} --region {{ aws_region }}
+      loop: "{{ nodegroups_result.stdout_lines }}"
+
+    - name: Get first Nodegroup
+      ansible.builtin.shell: >
+        aws eks list-nodegroups --cluster-name "{{ eks_cluster_name }}" --query 'nodegroups[0]' --output text --profile {{ aws_profile }} --region {{ aws_region }}
+      register: nodegroup_result
+
+    - name: Get cluster Security Group
+      ansible.builtin.shell: >
+        aws eks describe-cluster --name "{{ eks_cluster_name }}" --query "cluster.resourcesVpcConfig.clusterSecurityGroupId" --output text --profile {{ aws_profile }} --region {{ aws_region }}
+      register: security_group_result
+
+    - name: Create tags for Security Group
+      ansible.builtin.shell: >
+        aws ec2 create-tags --tags "Key=karpenter.sh/discovery,Value={{ eks_cluster_name }}" --resources {{ security_group_result.stdout }} --profile {{ aws_profile }} --region {{ aws_region }}
+
+    - name: Retrieve aws-auth ConfigMap
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        kind: ConfigMap
+        name: aws-auth
+        namespace: kube-system
+      register: configmap
+
+    - name: Update aws-auth ConfigMap with Karpenter node role
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        merge_type:
+          - strategic-merge
+        definition:
+          apiVersion: v1
+          kind: ConfigMap
+          metadata:
+            name: aws-auth
+            namespace: kube-system
+          data:
+            mapRoles: |
+              {{ configmap.resources[0].data.mapRoles }}
+              - groups:
+                - system:bootstrappers
+                - system:nodes
+                rolearn: "arn:aws:iam::{{ account_id }}:role/{{ karpenter_node_role }}"
+                username: system:node:{{ '{{EC2PrivateDNSName}}' }}
+    
+    - name: Create Karpenter namespace
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: karpenter
+        state: present
+        kubeconfig: "{{ k8s_kubeconfig }}"
+
+    - name: Get EKS cluster endpoint
+      ansible.builtin.shell: "aws eks describe-cluster --name {{ eks_cluster_name }} --query 'cluster.endpoint' --output text --profile {{ aws_profile }} --region {{ aws_region }}"
+      register: cluster_endpoint_output
+
+    - set_fact:
+        cluster_endpoint: "{{ cluster_endpoint_output.stdout }}"
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}
+        state: directory
+        mode: '0744'
+
+    - name: Generate spec for Karpenter Provisioner
+      ansible.builtin.template:
+        src: karpenter-provisioner.yaml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/karpenter-provisioner.yaml
+        mode: '0644'
+
+    - name: Create karpenter provisioners
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: karpenter.sh_provisioners.yaml
+
+    - name: Create Karpenter aws node templates
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: karpenter.k8s.aws_awsnodetemplates.yaml
+
+    - name: Generate Karpenter spec using Helm
+      shell: helm template karpenter oci://public.ecr.aws/karpenter/karpenter --version v0.27.1 --namespace karpenter --create-namespace --set settings.aws.defaultInstanceProfile={{ karpenter_instance_profile }} --set settings.aws.clusterName={{ eks_cluster_name }} --set serviceAccount.annotations."eks\.amazonaws\.com/role-arn"="arn:aws:iam::{{ account_id }}:role/KarpenterControllerRole-{{ eks_cluster_name }}" --set controller.resources.requests.cpu=1 --set controller.resources.requests.memory=1Gi --set controller.resources.limits.cpu=1 --set controller.resources.limits.memory=1Gi --set affinity.nodeAffinity=null --set affinity.podAntiAffinity=null > ~/.ansible/deployments/{{ eks_cluster_name }}/karpenter.yaml
+
+    - name: Deploy karpenter
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/karpenter.yaml
+        wait: true
+
+    - name: Apply karpenter provisioner
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/karpenter-provisioner.yaml
+        wait: true

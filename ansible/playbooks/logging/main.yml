@@ -1,0 +1,10 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  tasks:
+    - name: Generate fluentd Deployment spec
+      ansible.builtin.template:
+        src: fluentd-deployment.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/fluentd-deployment.yml
+        mode: '0644'
+      when: elasticsearch_info is defined

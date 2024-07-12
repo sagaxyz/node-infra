@@ -1,0 +1,12 @@
+spec:
+  template:
+    spec:
+      containers:
+        - name: aws-node
+          env:
+            - name: WARM_IP_TARGET
+              value: "20"
+            - name: WARM_ENI_TARGET
+              value: "6"
+            - name: MINIMUM_IP_TARGET
+              value: "110"

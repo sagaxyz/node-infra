@@ -1,0 +1,18 @@
+deployment_enabled: true
+
+docker_registry: docker.io
+
+app:
+  name: spc
+  container_name: sagaxyz/spc
+  namespace: sagasrv-spc
+
+container_image: "{{ docker_registry }}/{{ app.container_name }}:{{ versions.spc }}"
+
+conf:
+  MONIKER: localtestnet
+  KEYRING: file
+  KEYALGO: secp256k1
+  LOGLEVEL: info
+  TRACE: ""
+  SLEEPTIME: 5

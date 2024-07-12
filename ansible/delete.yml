@@ -1,0 +1,22 @@
+---
+- name: Delete stack
+  hosts: eks_clusters
+  gather_facts: false
+  become: false
+  pre_tasks:
+    - name: Install k8's module requirements
+      ansible.builtin.pip:
+        name:
+          - kubernetes>=12.0.0
+          - PyYAML>=3.11
+          - jsonpatch
+          - boto3>=1.18.0
+          - botocore>=1.21.0
+        extra_args: --user
+
+- name: Delete blockscout shared infra
+  ansible.builtin.import_playbook: playbooks/blockscout/delete.yml
+  when: explorer_sagaevm
+
+- name: Delete stack using k8's specs
+  ansible.builtin.import_playbook: playbooks/k8s/delete.yml

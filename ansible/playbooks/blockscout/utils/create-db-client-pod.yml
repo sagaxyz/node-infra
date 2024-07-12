@@ -1,0 +1,47 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars:
+    db_host: "blockscout-db.blockscout.svc.cluster.local"
+    db_port: "5432"
+    db_name: "postgres"
+    db_host_ro: "blockscout-db-ro.blockscout.svc.cluster.local"
+    db_host_stats: "blockscout-db-stats.blockscout.svc.cluster.local"
+
+    db_url: "postgresql://{{ explorer_db.user }}:{{ explorer_db.password }}@{{ db_host }}:{{ db_port }}/{{ db_name }}"
+    db_url_ro: "postgresql://{{ explorer_db.user }}:{{ explorer_db.password }}@{{ db_host_ro }}:{{ db_port }}/{{ db_name }}"
+    db_url_stats: "postgresql://{{ explorer_db.user }}:{{ explorer_db.password }}@{{ db_host_stats }}:{{ db_port }}/{{ db_name }}"
+
+  tasks:
+    - name: Create psql client pod in blockscout namespace
+      kubernetes.core.k8s:
+        state: present
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        definition:
+          apiVersion: v1
+          kind: Pod
+          metadata:
+            name: "psql-client"
+            namespace: "blockscout"
+          spec:
+            containers:
+            - name: "psql-client"
+              image: postgres:alpine
+              command: ["/bin/sh", "-ec", "while :; do echo '.'; sleep 5 ; done"]
+              env:
+                - name: PGUSER
+                  value: "{{ explorer_db.user }}"
+                - name: PGPASSWORD
+                  value: "{{ explorer_db.password }}"
+                - name: PGHOST
+                  value: "{{ db_host }}"
+                - name: PGPORT
+                  value: "{{ db_port }}"
+                - name: PGDATABASE
+                  value: "{{ db_name }}"
+                - name: DATABASE_URL
+                  value: "{{ db_url }}"
+                - name: DATABASE_URL_RO
+                  value: "{{ db_url_ro }}"
+                - name: DATABASE_URL_STATS
+                  value: "{{ db_url_stats }}"

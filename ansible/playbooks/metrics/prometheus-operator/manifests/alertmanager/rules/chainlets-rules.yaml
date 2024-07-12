@@ -1,0 +1,51 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: saga-chainlet-rules
+  namespace: sagasrv-metrics
+spec:
+  groups:
+  - name: chainlet-group
+    rules:
+    - alert: ChainletJailedValidator
+      annotations:
+        description: Jailed validator *{{ $labels.moniker }}* on *{{ $labels.chainId }}*
+        summary: Jailed validator
+      expr: sum(cosmos_validators_jailed{app="cosmos-exporter"}) by (moniker, chainId) > 0
+      labels:
+        severity: critical
+    - alert: ChainletByzantineValidator
+      annotations:
+        description: Byzantine validator(s) on *{{ $labels.chainId }}* ({{ $value }})
+        summary: Byzantine validator
+      expr: sum(cometbft_consensus_byzantine_validators{app="chainlet"}) by (chainId) > 0
+      labels:
+        severity: critical
+    - alert: ChainletMissedBlocks
+      annotations:
+        description: "*{{ $labels.moniker }}* missed *{{ $value }}* blocks on *{{ $labels.chainId }}* in 5 minutes"
+        summary: Missed more than 10 blocks in 5m
+      expr: delta(cosmos_validators_missed_blocks{app="cosmos-exporter"}[5m]) > 10
+      labels:
+        severity: critical
+    - alert: ChainletNotProducingBlocks
+      annotations:
+        description: "*{{ $labels.chainId }}* didn't produced blocks in the last minute"
+        summary: No blocks produced in the last minute
+      expr: delta(cometbft_consensus_height{app="chainlet"}[1m]) < 1
+      labels:
+        severity: critical
+    - alert: ChainletAverageBlockTimeTooLong
+      annotations:
+        description: Average block time for *{{ $labels.chainId }}* is *{{ $value }}* seconds
+        summary: Average block time too long
+      expr: sum(blockscout_average_block_time) by (chainId) / 1000 > 20
+      labels:
+        severity: warning
+    - alert: ChainletMempoolTooBig
+      annotations:
+        description: Mempool for *{{ $labels.chainId }}* is *{{ $value }}*
+        summary: Mempool bigger than 300
+      expr: sum(cometbft_mempool_size{app="chainlet"}) by (chainId) > 300
+      labels:
+        severity: warning

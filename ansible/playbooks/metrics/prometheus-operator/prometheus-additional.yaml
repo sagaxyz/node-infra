@@ -1,0 +1,24 @@
+- job_name: 'chainlets'
+  scrape_interval: 5s
+  kubernetes_sd_configs:
+  - role: pod
+  relabel_configs:
+  - source_labels: [__meta_kubernetes_pod_annotation_prometheus_io_scrape]
+    regex: "true"
+    replacement: $1
+    action: keep
+  - source_labels: [__address__, __meta_kubernetes_pod_annotation_prometheus_io_port]
+    action: replace
+    regex: ([^:]+)(?::\d+)?;(\d+)
+    replacement: $1:$2
+    target_label: __address__
+  - source_labels: [__meta_kubernetes_pod_label_chainId]
+    action: replace
+    regex: (.*)
+    replacement: $1
+    target_label: chainId
+  - source_labels: [__meta_kubernetes_pod_label_app]
+    action: replace
+    regex: (.*)
+    replacement: $1
+    target_label: app

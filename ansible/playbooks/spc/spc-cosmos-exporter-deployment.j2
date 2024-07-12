@@ -1,0 +1,47 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: {{ app.name }}-cosmos-exporter
+  namespace: {{ app.namespace }}
+  labels:
+    app: {{ app.name }}-cosmos-exporter
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: {{ app.name }}-cosmos-exporter
+  template:
+    metadata:
+      labels:
+        app: {{ app.name }}-cosmos-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9300"
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+      containers:
+        - name: cosmos-exporter
+          image: sagaxyz/cosmos-exporter:0.4.2
+          resources:
+            requests:
+              cpu: 20m
+              memory: 15Mi
+            limits:
+              cpu: 50m
+              memory: 30Mi
+          imagePullPolicy: IfNotPresent
+          command:
+            - ./cosmos-exporter
+          args:
+            - --tendermint-rpc=tcp://spc-internal:26657
+            - --node=spc-internal:9090
+            - --denom=tsaga
+            - --denom-coefficient=1
+            - --chain-id=spc
+          ports:
+            - containerPort: 9300
+              protocol: TCP

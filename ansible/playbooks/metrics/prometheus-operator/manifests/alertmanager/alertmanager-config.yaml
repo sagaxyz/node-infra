@@ -1,0 +1,37 @@
+apiVersion: monitoring.coreos.com/v1alpha1
+kind: AlertmanagerConfig
+metadata:
+  name: alertmanager-config
+  namespace: sagasrv-metrics
+spec:
+  route:
+    receiver: slack
+    continue: false
+    routes:
+    - receiver: empty
+      continue: false
+      matchers:
+        - name: alertname
+          value: KubeControllerManagerDown|KubeSchedulerDown|Watchdog|InfoInhibitor
+          matchType: =~
+    - receiver: empty
+      continue: false
+      matchers:
+        - name: severity
+          value: info|none
+          matchType: =~
+    - receiver: slack
+      continue: false
+      matchers:
+        - name: severity
+          value: warning|critical
+          matchType: =~
+  receivers:
+  - name: 'empty'
+  - name: slack
+    slackConfigs:
+      - apiURL:
+          key: slack-api-url
+          name: alertmanager-config
+        sendResolved: true
+        text: "*[{{ .Status }}] {{ .CommonLabels.alertname }} ({{ .CommonLabels.severity }}):*{{ range .Alerts }}\n- {{ .Annotations.description }}{{ end }}"

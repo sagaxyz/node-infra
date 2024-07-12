@@ -1,0 +1,23 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+  
+  tasks:
+
+    - name: Run Python script to get or create OIDC provider
+      ansible.builtin.script: get_or_create_oidc_provider.py "{{ eks_cluster_name }}" "{{ aws_profile }}" "{{ aws_region }}"
+      args:
+        executable: python3
+      register: oidc_provider_output
+
+    - name: Set OIDC provider ARN variable
+      ansible.builtin.set_fact:
+        oidc_provider_arn: "{{ oidc_provider_output.stdout }}"
+
+    - name: Extract account ID
+      set_fact:
+        account_id: "{{ oidc_provider_arn | regex_search('arn:aws:iam::(\\d+):', '\\1') | first }}"
+    
+    - name: Extract OIDC provider
+      set_fact:
+        oidc_provider: "{{ oidc_provider_arn.split('arn:aws:iam::')[1].split(':oidc-provider/')[1] | replace('\n', '') }}"

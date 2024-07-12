@@ -1,0 +1,27 @@
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  labels:
+    app.kubernetes.io/component: grafana
+    app.kubernetes.io/name: grafana
+    app.kubernetes.io/part-of: kube-prometheus
+    app.kubernetes.io/version: 10.3.3
+  name: grafana-config
+  namespace: sagasrv-metrics
+stringData:
+  grafana.ini: |
+    [auth.anonymous]
+    enabled = false
+    [date_formats]
+    default_timezone = UTC
+    [security]
+    admin_password = {{grafana_admin_password}}
+    [server]
+{% if explorer_url_suffix is defined %}
+    root_url = https://grafana.{{ explorer_url_suffix }}
+{% else %}
+    root_url = http://grafana.sagasrv-metrics.svc.cluster.local
+{% endif %}
+
+type: Opaque

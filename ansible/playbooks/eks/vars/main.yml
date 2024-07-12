@@ -1,0 +1,28 @@
+---
+ansible_python_interpreter: '{{ ansible_playbook_python }}'
+
+# AWS Settings.
+#aws_environment: true
+#aws_region: us-east-1
+#aws_profile: default
+
+# This variable will be populated during playbook runs.
+stack_outputs: {}
+
+# EKS VPC settings
+#eks_vpc_name: saga-validator-eks-cluster-vpc
+
+# EKS Cluster settings.
+#eks_cluster_name: saga-validator-eks-cluster
+# See: https://docs.aws.amazon.com/eks/latest/userguide/platform-versions.html
+#eks_kubernetes_version: "1.23"
+
+# Nodegroup settings.
+#eks_nodegroup_name: saga-eks-validator-nodegroup
+#eks_nodegroup_instance_type: m4.xlarge
+#eks_nodegroup_cluster_size: 3
+
+
+# Kubernetes settings.
+#k8s_kubeconfig: "{{ k8s_kubeconfig }}"
+k8s_no_log: true

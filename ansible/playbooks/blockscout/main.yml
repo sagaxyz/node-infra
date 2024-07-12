@@ -1,0 +1,161 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars:
+    db_instance_identifier: "blockscout-{{ eks_cluster_name }}"
+    db_subnet_group_name: "{{ db_instance_identifier }}-subnetgroup"
+
+  tasks:
+    - name: Get cluster info
+      shell: aws eks describe-cluster --name "{{ eks_cluster_name }}" --query "cluster.resourcesVpcConfig" --output json --profile {{ aws_profile }} --region {{ aws_region }}
+      register: cluster_info
+
+    - name: Set json_info as fact
+      set_fact:
+       json_info: "{{ cluster_info.stdout | from_json }}"
+
+    - name: Add or change a subnet group
+      amazon.aws.rds_subnet_group:
+        state: present
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        name: "{{ db_subnet_group_name }}"
+        description: Subnet Group for the centralized blockscout db
+        subnets: "{{ subnet_ids }}"
+      vars:
+        subnet_ids: "{{ json_info | json_query('subnetIds') }}"
+      register: subnet_group_info
+
+    - name: Create security group
+      amazon.aws.ec2_security_group:
+        state: present
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        name: "{{ db_instance_identifier }}"
+        description: "Security group for {{ db_instance_identifier }}. It accepts connections only from the cluster VPC"
+        vpc_id: "{{ vpc_id }}"
+        rules:
+          - proto: tcp
+            ports:
+            - 5432
+            cidr_ip: 0.0.0.0/0
+            rule_desc: allow VPC connections on port 5432
+      register: security_group_info
+      vars:
+        vpc_id: "{{ json_info | json_query('vpcId') }}"
+        cidr: 10.100.0.0/16
+
+    - name: Create RDS instance
+      amazon.aws.rds_instance:
+        state: present
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        multi_az: false
+        publicly_accessible: false
+        vpc_security_group_ids:
+          - "{{ security_group_info.group_id }}"
+        db_subnet_group_name: "{{ db_subnet_group_name }}"
+        engine: postgres
+        engine_version: "15.5"
+        db_instance_identifier: "{{ db_instance_identifier }}"
+        instance_type: "{{ explorer_db.instance_type }}"
+        master_user_password: "{{ explorer_db.password }}"
+        master_username: "{{ explorer_db.user }}"
+        port: 5432
+        allocated_storage: "{{ explorer_db.allocated_storage_gb }}"
+        skip_final_snapshot: false
+        backup_retention_period: "{{ explorer_db.backup_retention_period}}"
+      vars:
+        vpc_security_group_ids: "{{ json_info | json_query('securityGroupIds') }}"
+        db_subnet_group_name: "{{ subnet_group_info.subnet_group.db_subnet_group_name }}"
+      register: rds_info
+
+    - name: Create RDS instance (read-only replica)
+      amazon.aws.rds_instance:
+        state: present
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        multi_az: false
+        publicly_accessible: false
+        vpc_security_group_ids:
+          - "{{ security_group_info.group_id }}"
+        db_subnet_group_name: "{{ db_subnet_group_name }}"
+        engine: postgres
+        engine_version: "15.5"
+        db_instance_identifier: "{{ db_instance_identifier }}-replica-1"
+        instance_type: "{{ explorer_db.instance_type_read_only }}"
+        master_user_password: "{{ explorer_db.password }}"
+        master_username: "{{ explorer_db.user }}"
+        port: 5432
+        allocated_storage: "{{ explorer_db.allocated_storage_gb }}"
+        skip_final_snapshot: true
+        backup_retention_period: "0"
+        read_replica: true
+        source_db_instance_identifier: "{{ rds_info.db_instance_arn }}"
+        creation_source: instance
+      vars:
+        vpc_security_group_ids: "{{ json_info | json_query('securityGroupIds') }}"
+        db_subnet_group_name: "{{ subnet_group_info.subnet_group.db_subnet_group_name }}"
+      register: rds_replica_info
+
+    - name: Create RDS instance (stats)
+      amazon.aws.rds_instance:
+        state: present
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        multi_az: false
+        publicly_accessible: false
+        vpc_security_group_ids:
+          - "{{ security_group_info.group_id }}"
+        db_subnet_group_name: "{{ db_subnet_group_name }}"
+        engine: postgres
+        engine_version: "15.5"
+        db_instance_identifier: "{{ db_instance_identifier }}-stats-1"
+        instance_type: "{{ explorer_db.instance_type_stats }}"
+        master_user_password: "{{ explorer_db.password }}"
+        master_username: "{{ explorer_db.user }}"
+        port: 5432
+        allocated_storage: "{{ explorer_db.allocated_storage_gb_stats }}"
+        skip_final_snapshot: false
+        backup_retention_period: "0"
+      vars:
+        vpc_security_group_ids: "{{ json_info | json_query('securityGroupIds') }}"
+        db_subnet_group_name: "{{ subnet_group_info.subnet_group.db_subnet_group_name }}"
+      register: rds_info_stats
+
+    - name: Set db endpoint info
+      set_fact:
+       db_endpoint: "{{ rds_info.endpoint }}"
+
+    - name: Set db endpoint info (read-only)
+      set_fact:
+       db_replica_endpoint: "{{ rds_replica_info.endpoint }}"
+
+    - name: Set db endpoint info (stats)
+      set_fact:
+       db_stats_endpoint: "{{ rds_info_stats.endpoint }}"
+
+    - name: Generate blockscout resources spec
+      ansible.builtin.template:
+        src: blockscout-deploy.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/blockscout-deploy.yaml
+        mode: '0644'
+
+    - name: Deploy blockscout resources
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/blockscout-deploy.yaml
+        wait: true
+
+    - name: Generate stats exporter resources spec
+      ansible.builtin.template:
+        src: stats-exporter-deploy.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/stats-exporter-deploy.yaml
+        mode: '0644'
+
+    - name: Deploy stats exporter resources
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/stats-exporter-deploy.yaml

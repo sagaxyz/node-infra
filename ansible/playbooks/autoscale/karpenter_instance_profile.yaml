@@ -1,0 +1,7 @@
+Resources:
+  KarpenterInstanceProfile:
+    Type: AWS::IAM::InstanceProfile
+    Properties:
+      InstanceProfileName: KarpenterInstanceProfile
+      Roles:
+        - Ref: KarpenterNodeRole

@@ -1,0 +1,13 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  tasks:
+    - name: Delete psql client pod in blockscout namespace
+      kubernetes.core.k8s:
+        state: absent
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        definition:
+          kind: Pod
+          metadata:
+            name: "psql-client"
+            namespace: "blockscout"

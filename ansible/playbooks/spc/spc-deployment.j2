@@ -1,0 +1,99 @@
+---
+apiVersion: apps/v1 
+kind: Deployment
+metadata:
+  name: {{ app.name }}
+  namespace: {{ app.namespace }}
+  labels:
+    app: {{ app.name }}
+spec:
+  selector:
+    matchLabels:
+      app: {{ app.name }}
+  strategy:
+    type: Recreate
+  template:
+    metadata:
+      labels:
+        app: {{ app.name }}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "26660"
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - image: {{ container_image }}
+          name: {{ app.name }}
+          env:
+          - name: UID
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.uid
+          - name: CHAIN_ID
+            value: "{{ chain_id }}"
+          - name: MONIKER
+            value: "{{ moniker }}"
+          - name: DENOM
+            value: "{{ spc_denom }}"
+          - name: GENESIS
+            value: "{{ spc_genesis }}"
+          - name: LOGLEVEL
+            value: "{{ conf.LOGLEVEL }}"
+{% if validator_mnemonic is defined %}
+          - name: NODE_KEY
+            value: "{{ spc_node_key }}"
+{% endif %}
+          - name: PEERS
+            value: "{{ spc_peers | default('') }}"
+          - name: EXTERNAL_ADDRESS
+            value: "{{ spc_external_address_host }}:26656"
+          - name: OPTS
+            value: "--pruning {{ pruning_strategy | default('default') }} {{ spc_additional_args }}"
+{% if validator_mnemonic is defined %}
+          - name: MNEMONIC
+            value: "{{ validator_mnemonic }}"
+{% endif %}
+          ports:
+            - name: tmint-rpc-1-{{ app.name }}
+              containerPort: 26656
+            - name: tmint-rpc-2-{{ app.name }}
+              containerPort: 26657
+            - name: http
+              containerPort: 1317
+            - name: grpc
+              containerPort: 9090
+            - name: metrics
+              containerPort: 26660
+          volumeMounts:
+          - name: saga-{{ app.name }}-persistent-storage
+            mountPath: /root/.spc
+          - name: "fluentd-logs"
+            mountPath: "/var/log/saga"
+            subPathExpr: $(UID)
+      volumes:
+      - name: saga-{{ app.name }}-persistent-storage
+        persistentVolumeClaim:
+          claimName: saga-{{ app.name }}-pvc
+      - name: "fluentd-logs"
+        hostPath:
+          path: /var/log/saga
+          type: DirectoryOrCreate
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: saga-{{ app.name }}-pvc
+  namespace: {{ app.namespace }}
+  labels:
+    app: "{{ app.name }}"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "{{ spc_volume_size }}"

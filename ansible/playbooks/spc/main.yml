@@ -1,0 +1,50 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}
+        state: directory
+        mode: '0744'
+
+    - name: Generate SPC Namespce spec
+      ansible.builtin.template:
+        src: spc-ns.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-ns.yml
+        mode: '0644'
+
+    - name: Generate SPC Secret spec
+      ansible.builtin.template:
+        src: secret.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-secret.yml
+        mode: '0644'
+
+    - name: Generate SPC Service spec
+      ansible.builtin.template:
+        src: spc-service.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-service.yml
+        mode: '0644'
+
+    - name: Generate SPC Deployment spec
+      ansible.builtin.template:
+        src: spc-deployment.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-deployment.yml
+        mode: '0644'
+
+    - name: Generate SPC Cosmos Exporter Deployment spec
+      ansible.builtin.template:
+        src: spc-cosmos-exporter-deployment.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-cosmos-exporter-deployment.yml
+        mode: '0644'
+
+    - name: Generate SPC snapshot cronjob spec
+      ansible.builtin.template:
+        src: snapshot/spc-snapshot-cronjob.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-snapshot-cronjob.yml
+        mode: '0644'
+      when: snapshot.spc is defined
+

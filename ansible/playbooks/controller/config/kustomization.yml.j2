@@ -1,0 +1,12 @@
+generatorOptions:
+  disableNameSuffixHash: True
+configMapGenerator:
+- name: controller-config
+  files:
+    - controller.yml
+- name: controller-config-kube
+  files:
+    - chainlet.yml.tmpl
+    - lb.yml.tmpl
+
+namespace: {{app.namespace}}

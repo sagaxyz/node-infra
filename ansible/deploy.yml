@@ -1,0 +1,32 @@
+---
+- name: Generate k8s spec and apply role
+  hosts: eks_clusters
+  gather_facts: false
+  become: false
+  pre_tasks:
+    - name: Install k8's module requirements
+      ansible.builtin.pip:
+        name:
+          - kubernetes>=12.0.0
+          - PyYAML>=3.11
+          - jsonpatch
+          - boto3>=1.18.0
+          - botocore>=1.21.0
+        extra_args: --user
+
+- name: Gather OIDC provider info
+  import_playbook: playbooks/oidc/provision.yml
+
+- name: Provision blockscout shared infra
+  ansible.builtin.import_playbook: playbooks/blockscout/main.yml
+  when: explorer_sagaevm
+
+- name: Generate k8s specs
+  ansible.builtin.import_playbook: generate_spec.yml
+
+- name: Apply k8s specs
+  ansible.builtin.import_playbook: playbooks/k8s/apply.yml
+
+- name: Install certificates
+  ansible.builtin.import_playbook: playbooks/certs/apply.yml
+  when: tls_enabled

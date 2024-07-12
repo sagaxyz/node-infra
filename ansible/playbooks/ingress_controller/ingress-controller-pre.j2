@@ -1,0 +1,668 @@
+apiVersion: v1
+kind: Namespace
+metadata:
+  labels:
+    app.kubernetes.io/instance: ingress-nginx
+    app.kubernetes.io/name: ingress-nginx
+  name: ingress-nginx
+  namespace: ingress-nginx
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-errors
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: nginx-errors
+    app.kubernetes.io/part-of: ingress-nginx
+spec:
+  selector:
+    app.kubernetes.io/name: nginx-errors
+    app.kubernetes.io/part-of: ingress-nginx
+  ports:
+  - port: 80
+    targetPort: 8080
+    name: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-error-pages
+  namespace: ingress-nginx
+data:
+  404: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>404 Not Found</title>
+        <style>
+            body {
+                text-align: center;
+                padding: 40px;
+                font-family: Arial, sans-serif;
+            }
+            h1 {
+                font-size: 50px;
+            }
+            p {
+                font-size: 20px;
+                color: #888;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>404 Not Found</h1>
+        <p>The requested URL was not found on this server.</p>
+    </body>
+    </html>
+  502: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>502 Bad Gateway</title>
+        <style>
+            body {
+                text-align: center;
+                padding: 40px;
+                font-family: Arial, sans-serif;
+            }
+            h1 {
+                font-size: 50px;
+            }
+            p {
+                font-size: 20px;
+                color: #888;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>502 Bad Gateway</h1>
+        <p>The server encountered a temporary error and could not complete your request.</p>
+    </body>
+    </html>
+  503: |
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+        <meta charset="UTF-8">
+        <meta name="viewport" content="width=device-width, initial-scale=1.0">
+        <title>503 Service Unavailable</title>
+        <style>
+            body {
+                text-align: center;
+                padding: 40px;
+                font-family: Arial, sans-serif;
+            }
+            h1 {
+                font-size: 50px;
+            }
+            p {
+                font-size: 20px;
+                color: #888;
+            }
+        </style>
+    </head>
+    <body>
+        <h1>503 Service Unavailable</h1>
+        <p>The server encountered a temporary error and could not complete your request.</p>
+    </body>
+    </html>
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-errors
+  namespace: ingress-nginx
+  labels:
+    app.kubernetes.io/name: nginx-errors
+    app.kubernetes.io/part-of: ingress-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx-errors
+      app.kubernetes.io/part-of: ingress-nginx
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx-errors
+        app.kubernetes.io/part-of: ingress-nginx
+    spec:
+      containers:
+      - name: nginx-error-server
+        image: registry.k8s.io/ingress-nginx/nginx-errors:v20230505@sha256:3600dcd1bbd0d05959bb01af4b272714e94d22d24a64e91838e7183c80e53f7f
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: "custom-http-errors"
+          mountPath: /www
+      volumes:
+      - name: "custom-http-errors"
+        configMap:
+          name: "custom-error-pages"
+          items:
+          - key: "404"
+            path: "404.html"
+          - key: "502"
+            path: "502.html"
+          - key: "503"
+            path: "503.html"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: nginx-errors-sagaexplorer
+  namespace: ingress-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app.kubernetes.io/name: nginx-errors-sagaexplorer
+  template:
+    metadata:
+      labels:
+        app.kubernetes.io/name: nginx-errors-sagaexplorer
+    spec:
+      containers:
+      - name: nginx-error-server
+        image: registry.k8s.io/ingress-nginx/nginx-errors:v20230505@sha256:3600dcd1bbd0d05959bb01af4b272714e94d22d24a64e91838e7183c80e53f7f
+        ports:
+        - containerPort: 8080
+        volumeMounts:
+        - name: "custom-http-errors"
+          mountPath: /www
+      volumes:
+      - name: "custom-http-errors"
+        configMap:
+          name: "custom-error-pages-sagaexplorer"
+          items:
+          - key: "404"
+            path: "404.html"
+          - key: "502"
+            path: "502.html"
+          - key: "503"
+            path: "503.html"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: nginx-errors-sagaexplorer
+  namespace: ingress-nginx
+spec:
+  selector:
+    app.kubernetes.io/name: nginx-errors-sagaexplorer
+  ports:
+  - port: 80
+    targetPort: 8080
+    name: http
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: custom-error-pages-sagaexplorer
+  namespace: ingress-nginx
+data:
+  404: |
+    <!DOCTYPE html>
+    <html>
+
+    <head>
+      <meta charset="UTF-8">
+      <title>404 Not Found</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        @font-face {
+          font-family: 'Neue Haas';
+          src: url('https://cassio-nginx-errors-cdn.s3.us-west-2.amazonaws.com/fonts/NeueHaas/NeueHaasDisplayThin.ttf') format('truetype');
+        }
+        
+        @font-face {
+          font-family: 'Neue Haas Roman';
+          src: url('https://cassio-nginx-errors-cdn.s3.us-west-2.amazonaws.com/fonts/NeueHaas/NeueHaasDisplayRoman.ttf') format('truetype');
+        }
+        
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        html {
+          background-image: url('https://cassio-nginx-errors-cdn.s3.us-west-2.amazonaws.com/404/background.png');
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: cover;
+          height: 100vh;
+          font-size: 16px;
+        }
+        
+        body {
+          font-family: 'Neue Haas', sans-serif;
+          color: #f5f5f5;
+        }
+        
+        h1 {
+          text-transform: uppercase;
+          font-size: 4.2rem;
+          font-family: 'Neue Haas Roman', sans-serif;
+          margin-bottom: 10px;
+        }
+        
+        p {
+          font-size: 2rem;
+          margin-bottom: 0px;
+          margin-right: 20px;
+        }
+        
+        footer {
+          position: absolute;
+          bottom: 60px;
+          left: 36px;
+          text-align: left;
+        }
+        
+        .button {
+          font-family: "Neue Haas", Arial, Helvetica, sans-serif;
+          font-size: calc(20px + 0vw);
+          line-height: 1.2;
+          text-transform: uppercase;
+          padding: 3px;
+          height: 48px;
+          display: inline-flex;
+          align-items: center;
+          color: #000;
+          background-color: #fff;
+          border-radius: 500px;
+          border: 1px solid #fff;
+          position: relative;
+          transition: background-color .3s ease-in-out, color .3s ease-in-out, border-color .3s ease-in-out, opacity .3s ease-in-out;
+          cursor: pointer;
+          overflow: hidden;
+          opacity: 1;
+          transition: opacity .2s ease-in-out;
+          text-decoration: none;
+          font-weight: 400;
+          color-scheme: dark;
+          margin-top: 40px;
+        }
+        
+        .button>span {
+          padding-bottom: calc(0px + 0vw);
+          padding-top: calc(0px + 0vw);
+          padding-right: calc(24px + 0vw);
+          padding-left: calc(24px + 0vw);
+        }
+        
+        @media only screen and (min-width: 768px) {
+          footer {
+            bottom: 60px;
+            left: 80px;
+          }
+        }    
+      </style>
+    </head>
+
+    <body>
+      <header></header>
+      <main></main>
+      <footer>
+        <h1>404 Not Found</h1>
+        <p>Looking for a chainlet that doesn't exist,</p>
+        <p>check what universe you are in...</p>
+        <a href="/" class="button">
+          <span>Go back to Pegasus</span>
+          <svg width="40" height="40" viewBox="0 0 40 40" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <circle cx="20" cy="20" r="20" fill="black" />
+            <line x1="8.75" y1="20" x2="30.5" y2="20" stroke="white" stroke-width="2" />
+            <path d="M20.75 10.25L30.5 20L20.75 29.75" stroke="white" stroke-width="2" />
+          </svg>
+        </a>
+      </footer>
+    </body>
+
+    </html>
+  502: |
+    <!DOCTYPE html>
+    <html>
+
+    <head>
+      <meta charset="UTF-8">
+      <title>502 Bad Gateway</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        @font-face {
+          font-family: 'Neue Haas';
+          src: url('https://cassio-nginx-errors-cdn.s3.us-west-2.amazonaws.com/fonts/NeueHaas/NeueHaasDisplayThin.ttf') format('truetype');
+        }
+        
+        @font-face {
+          font-family: 'Neue Haas Medium';
+          src: url('https://cassio-nginx-errors-cdn.s3.us-west-2.amazonaws.com/fonts/NeueHaas/NeueHaasDisplayMedium.ttf') format('truetype');
+        }
+        
+        @font-face {
+          font-family: 'IBM Plex Mono Light';
+          src: url('https://cassio-nginx-errors-cdn.s3.us-west-2.amazonaws.com/fonts/IBMPlexMono/IBMPlexMono-Light.ttf') format('truetype');
+        }
+        
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        html {
+          position: relative;
+          background-image: url('https://cassio-nginx-errors-cdn.s3.us-west-2.amazonaws.com/502/background.png');
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: cover;
+          height: 100vh;
+          font-size: 16px;
+        }
+        
+        body {
+          font-family: 'Neue Haas', sans-serif;
+          color: #f5f5f5;
+        }
+        
+        header {
+          font-family: "IBM Plex Mono Light", Arial, Helvetica, sans-serif;
+          position: absolute;
+          top: 60px;
+          left: 36px;
+          text-align: left;
+        }
+        
+        header>svg {
+          margin-bottom: 20px;
+        }
+        
+        header>p {
+          text-transform: uppercase;
+          font-size: 1.25rem;
+          margin-left: 0;
+          margin-right: 10px;
+          margin-bottom: 0;
+          margin-top: 0;
+          padding: 0;
+        }
+        
+        h1 {
+          text-transform: uppercase;
+          font-size: 4.2rem;
+          font-family: 'Neue Haas Medium', sans-serif;
+          margin-bottom: 10px;
+          text-shadow: 2px 2px 2px #343434;
+        }
+        
+        p {
+          font-size: 2rem;
+          margin-bottom: 20px;
+          margin-right: 20px;
+        }
+        
+        footer {
+          position: absolute;
+          bottom: 60px;
+          left: 36px;
+          text-align: left;
+        }
+        
+        
+        @media only screen and (min-width: 768px) {
+        
+          header {
+            top: 60px;
+            left: 80px;
+          }
+        
+          footer {
+            bottom: 60px;
+            left: 80px;
+          }
+        
+          h1 {
+            text-shadow: 0;
+          }
+        }    
+      </style>
+    </head>
+
+    <body>
+      <header>
+        <svg width="335" height="24" viewBox="0 0 335 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="5" height="24" fill="white" />
+          <rect x="12" width="2" height="24" fill="white" />
+          <rect x="21" width="2" height="24" fill="white" />
+          <rect x="30" width="2" height="24" fill="white" />
+          <rect x="39" width="2" height="24" fill="white" />
+          <rect x="48" width="2" height="24" fill="white" />
+          <rect x="57" width="2" height="24" fill="white" />
+          <rect x="66" width="2" height="24" fill="white" />
+          <rect x="75" width="2" height="24" fill="white" />
+          <rect x="84" width="2" height="24" fill="white" />
+          <rect x="93" width="2" height="24" fill="white" />
+          <rect x="102" width="2" height="24" fill="white" />
+          <rect x="111" width="2" height="24" fill="white" />
+          <rect x="120" width="2" height="24" fill="white" />
+          <rect x="129" width="2" height="24" fill="white" />
+          <rect x="138" width="2" height="24" fill="white" />
+          <rect x="147" width="2" height="24" fill="white" />
+          <rect x="156" width="2" height="24" fill="white" />
+          <rect x="165" width="2" height="24" fill="white" />
+          <rect x="174" width="2" height="24" fill="white" />
+          <rect x="183" width="2" height="24" fill="white" />
+          <rect x="192" width="2" height="24" fill="white" />
+          <rect x="201" width="2" height="24" fill="white" />
+          <rect x="210" width="2" height="24" fill="white" />
+          <rect x="219" width="2" height="24" fill="white" />
+          <rect x="228" width="2" height="24" fill="white" />
+          <rect x="237" width="2" height="24" fill="white" />
+          <rect x="246" width="2" height="24" fill="white" />
+          <rect x="255" width="2" height="24" fill="white" />
+          <rect x="264" width="2" height="24" fill="white" />
+          <rect x="273" width="2" height="24" fill="white" />
+          <circle cx="282" cy="12" r="2" fill="white" />
+          <circle cx="291" cy="12" r="2" fill="white" />
+          <circle cx="300" cy="12" r="2" fill="white" />
+          <circle cx="309" cy="12" r="2" fill="white" />
+          <circle cx="318" cy="12" r="2" fill="white" />
+        </svg>
+        <p>Loading Chainlet explorer//</p>
+        <p>V1.0264 error:502</p>
+        <p>Processing 92% </p>
+      </header>
+      <main></main>
+      <footer>
+        <h1>502 Bad Gateway</h1>
+        <p>Chainlet explorer not available yet, please try again later...</p>
+      </footer>
+    </body>
+
+    </html>
+  503: |
+    <!DOCTYPE html>
+    <html>
+
+    <head>
+      <meta charset="UTF-8">
+      <title>503 Service Unavailable</title>
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <style>
+        @font-face {
+          font-family: 'Neue Haas';
+          src: url('https://cassio-nginx-errors-cdn.s3.us-west-2.amazonaws.com/fonts/NeueHaas/NeueHaasDisplayThin.ttf') format('truetype');
+        }
+        
+        @font-face {
+          font-family: 'Neue Haas Medium';
+          src: url('https://cassio-nginx-errors-cdn.s3.us-west-2.amazonaws.com/fonts/NeueHaas/NeueHaasDisplayMedium.ttf') format('truetype');
+        }
+        
+        @font-face {
+          font-family: 'IBM Plex Mono Light';
+          src: url('https://cassio-nginx-errors-cdn.s3.us-west-2.amazonaws.com/fonts/IBMPlexMono/IBMPlexMono-Light.ttf') format('truetype');
+        }
+        
+        * {
+          margin: 0;
+          padding: 0;
+          box-sizing: border-box;
+        }
+        
+        html {
+          position: relative;
+          background-image: url('https://cassio-nginx-errors-cdn.s3.us-west-2.amazonaws.com/502/background.png');
+          background-position: center;
+          background-repeat: no-repeat;
+          background-size: cover;
+          height: 100vh;
+          font-size: 16px;
+        }
+        
+        body {
+          font-family: 'Neue Haas', sans-serif;
+          color: #f5f5f5;
+        }
+        
+        header {
+          font-family: "IBM Plex Mono Light", Arial, Helvetica, sans-serif;
+          position: absolute;
+          top: 60px;
+          left: 36px;
+          text-align: left;
+        }
+        
+        header>svg {
+          margin-bottom: 20px;
+        }
+        
+        header>p {
+          text-transform: uppercase;
+          font-size: 1.25rem;
+          margin-left: 0;
+          margin-right: 10px;
+          margin-bottom: 0;
+          margin-top: 0;
+          padding: 0;
+        }
+        
+        h1 {
+          text-transform: uppercase;
+          font-size: 4.2rem;
+          font-family: 'Neue Haas Medium', sans-serif;
+          margin-bottom: 10px;
+          text-shadow: 2px 2px 2px #343434;
+        }
+        
+        p {
+          font-size: 2rem;
+          margin-bottom: 20px;
+          margin-right: 20px;
+        }
+        
+        footer {
+          position: absolute;
+          bottom: 60px;
+          left: 36px;
+          text-align: left;
+        }
+        
+        
+        @media only screen and (min-width: 768px) {
+        
+          header {
+            top: 60px;
+            left: 80px;
+          }
+        
+          footer {
+            bottom: 60px;
+            left: 80px;
+          }
+        
+          h1 {
+            text-shadow: 0;
+          }
+        }    
+      </style>
+    </head>
+
+    <body>
+      <header>
+        <svg width="335" height="24" viewBox="0 0 335 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+          <rect width="5" height="24" fill="white" />
+          <rect x="12" width="2" height="24" fill="white" />
+          <rect x="21" width="2" height="24" fill="white" />
+          <rect x="30" width="2" height="24" fill="white" />
+          <rect x="39" width="2" height="24" fill="white" />
+          <rect x="48" width="2" height="24" fill="white" />
+          <rect x="57" width="2" height="24" fill="white" />
+          <rect x="66" width="2" height="24" fill="white" />
+          <rect x="75" width="2" height="24" fill="white" />
+          <rect x="84" width="2" height="24" fill="white" />
+          <rect x="93" width="2" height="24" fill="white" />
+          <rect x="102" width="2" height="24" fill="white" />
+          <rect x="111" width="2" height="24" fill="white" />
+          <rect x="120" width="2" height="24" fill="white" />
+          <rect x="129" width="2" height="24" fill="white" />
+          <rect x="138" width="2" height="24" fill="white" />
+          <rect x="147" width="2" height="24" fill="white" />
+          <rect x="156" width="2" height="24" fill="white" />
+          <rect x="165" width="2" height="24" fill="white" />
+          <rect x="174" width="2" height="24" fill="white" />
+          <rect x="183" width="2" height="24" fill="white" />
+          <rect x="192" width="2" height="24" fill="white" />
+          <rect x="201" width="2" height="24" fill="white" />
+          <rect x="210" width="2" height="24" fill="white" />
+          <rect x="219" width="2" height="24" fill="white" />
+          <rect x="228" width="2" height="24" fill="white" />
+          <rect x="237" width="2" height="24" fill="white" />
+          <rect x="246" width="2" height="24" fill="white" />
+          <rect x="255" width="2" height="24" fill="white" />
+          <rect x="264" width="2" height="24" fill="white" />
+          <rect x="273" width="2" height="24" fill="white" />
+          <circle cx="282" cy="12" r="2" fill="white" />
+          <circle cx="291" cy="12" r="2" fill="white" />
+          <circle cx="300" cy="12" r="2" fill="white" />
+          <circle cx="309" cy="12" r="2" fill="white" />
+          <circle cx="318" cy="12" r="2" fill="white" />
+        </svg>
+        <p>Loading Chainlet explorer//</p>
+        <p>V1.0264 error:503</p>
+        <p>Processing 92% </p>
+      </header>
+      <main></main>
+      <footer>
+        <h1>503 Service Unavailable</h1>
+        <p>Chainlet explorer not available yet, please try again later...</p>
+      </footer>
+    </body>
+
+    </html>
+{% if explorer_ingress_external_address_host is defined %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-errors-sagaexplorer
+  namespace: ingress-nginx  
+spec:
+  ingressClassName: nginx
+  rules:
+  - host: "{{ explorer_ingress_external_address_host }}"
+    http:
+      paths:
+      - path: /
+        pathType: Prefix
+        backend:
+          service:
+            name: nginx-errors-sagaexplorer
+            port:
+              number: 80
+{% endif %}

@@ -1,0 +1,111 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: ssc-spanshot-sa
+  namespace: sagasrv-ssc
+  annotations:
+    eks.amazonaws.com/role-arn: "{{ chainlet_role_info.arn }}"
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: ssc-spanshot
+  namespace: sagasrv-ssc
+  labels:
+    app: ssc-spanshot
+spec:
+  schedule: "0 0 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          serviceAccountName: ssc-spanshot-sa
+          containers:
+            - image: {{ snapshot.ssc.image }}
+              name: ssc
+              command: ["bash", "/root/snapshot.sh"]
+              env:
+              - name: S3_SNAPSHOTS_BUCKET
+                value: {{ snapshot.ssc.bucket }}
+              - name: S3_SNAPSHOTS_RETENTION
+                value: "{{ snapshot.ssc.retention }}"
+              - name: PRUNING_STRATEGY
+                value: "{{ snapshot.ssc.pruning_strategy }}"
+              - name: CHAINID
+                value: "{{ snapshot.ssc.chain_id }}"
+              - name: GENESIS_URL
+                value: "{{ snapshot.ssc.genesis_url }}"
+              - name: PERSISTENT_PEERS
+                value: "{{ snapshot.ssc.persistent_peers }}"
+              - name: AWS_DEFAULT_REGION
+                value: {{ aws_region }}
+              volumeMounts:
+              - name: saga-ssc-persistent-storage
+                mountPath: /root/.ssc/data
+              - name: saga-ssc-persistent-tmp-storage
+                mountPath: /tmp
+              - name: ssc-snapshot-configmap
+                mountPath: "/root/snapshot.sh"
+                subPath: snapshot.sh
+              resources:
+                requests:
+                  memory: "24Gi"
+                  cpu: "2"
+                limits:
+                  memory: "32Gi"
+                  cpu: "4"
+          volumes:
+          - name: saga-ssc-persistent-storage
+            persistentVolumeClaim:
+              claimName: saga-ssc-snapshot-pvc
+          - name: saga-ssc-persistent-tmp-storage
+            persistentVolumeClaim:
+              claimName: saga-ssc-snapshot-tmp-pvc
+          - name: ssc-snapshot-configmap
+            configMap:
+              name: ssc-snapshot-configmap
+              defaultMode: 0777
+          nodeSelector:
+            kubernetes.io/os: linux
+          restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: saga-ssc-snapshot-pvc
+  namespace: sagasrv-ssc
+  labels:
+    app: ssc-snapshot
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "{{ snapshot.ssc.volume_size }}"
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: saga-ssc-snapshot-tmp-pvc
+  namespace: sagasrv-ssc
+  labels:
+    app: ssc-snapshot
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "{{ snapshot.ssc.volume_size }}"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ssc-snapshot-configmap
+  namespace: sagasrv-ssc
+data:
+  snapshot.sh: |
+{% filter indent(width=4) %}
+    {% include 'snapshot.sh' %}
+{% endfilter %}

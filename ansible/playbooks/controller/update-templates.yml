@@ -1,0 +1,69 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars:
+    - chainlets_dir: "~/.ansible/deployments/{{ eks_cluster_name }}/chainlets"
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Create chainlets config directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}/chainlets
+        state: directory
+        mode: '0744'
+
+    - name: Generate chainlets config spec
+      ansible.builtin.template:
+        src: config/kustomization.yml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/chainlets/kustomization.yml
+        mode: '0644'
+
+    - name: Copy chainlet templates
+      copy:
+        src: config/
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/chainlets/
+
+    - name: Define variable explorer_url_suffixes
+      set_fact:
+        explorer_url_suffixes: "{{ [explorer_generic_url_suffix, explorer_url_suffix] if explorer_generic_url_suffix is defined else [explorer_url_suffix] }}"
+        rpc_url_suffixes: "{{ [rpc_generic_url_suffix, url_suffix] if rpc_generic_url_suffix is defined else [url_suffix] }}"
+
+    - name: Generate chainlet templates
+      ansible.builtin.template:
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/chainlets/chainlet.yml.tmpl.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/chainlets/chainlet.yml.tmpl
+        mode: '0644'
+        variable_start_string: "%%%" # to disable golang variables substitutions
+        variable_end_string: "%%%"
+
+    - name: Apply Controller configmap spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        definition: "{{ lookup('kubernetes.core.kustomize', dir='' + chainlets_dir_abs ) }}"
+      vars:
+        chainlets_dir_abs: "{{ chainlets_dir | expanduser }}"
+      register: configmap_output
+
+    - name: Get controller pod info
+      kubernetes.core.k8s_info:
+        kind: Pod
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        namespace: sagasrv-controller
+        label_selectors:
+          - "app = controller"
+      register: controller_pod_info
+      when: configmap_output.changed
+
+    - name: Restart controller pod
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        kind: Pod
+        name: "{{ pod_name }}"
+        namespace: sagasrv-controller
+      vars:
+        pod_name: "{{ controller_pod_info.resources[0].metadata.name }}"
+      when: configmap_output.changed
+

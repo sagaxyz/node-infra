@@ -1,0 +1,84 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  pre_tasks:
+    - name: Install cloudformation dependencies
+      ansible.builtin.pip:
+        name:
+          - boto3>=1.18.0
+          - botocore>=1.21.0
+
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+
+    - name: Run Python script to get or create OIDC provider
+      ansible.builtin.script: get_or_create_oidc_provider.py "{{ eks_cluster_name }}" "{{ aws_profile }}" "{{ aws_region }}"
+      args:
+        executable: python3
+      register: oidc_provider_output
+
+    - name: Set OIDC provider ARN variable
+      ansible.builtin.set_fact:
+        oidc_provider_arn: "{{ oidc_provider_output.stdout }}"
+
+    - name: Extract account ID
+      set_fact:
+        account_id: "{{ oidc_provider_arn | regex_search('arn:aws:iam::(\\d+):', '\\1') }}"
+
+    - name: Delete Karpenter namespace
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: karpenter
+        state: absent
+        kubeconfig: "{{ k8s_kubeconfig }}"
+
+    - name: Delete karpenter provisioners
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: karpenter.sh_provisioners.yaml
+
+    - name: Delete Karpenter aws node templates
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: karpenter.k8s.aws_awsnodetemplates.yaml
+
+    - name: Get EKS cluster endpoint
+      ansible.builtin.shell: "aws eks describe-cluster --name {{ eks_cluster_name }} --query 'cluster.endpoint' --output text --profile {{ aws_profile }} --region {{ aws_region }}"
+      register: cluster_endpoint_output
+
+    - set_fact: 
+        cluster_endpoint: "{{ cluster_endpoint_output.stdout }}"
+
+    - name: List all helm releases
+      shell: helm ls -A --kubeconfig ~/.kube/{{ eks_cluster_name }}
+
+    - name: Delete karpenter provisioner
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/karpenter-provisioner.yaml
+        wait: true
+
+    - name: Delete Karpenter deployment using helm
+      kubernetes.core.helm:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        release_name: karpenter
+        release_namespace: karpenter
+        chart_ref: oci://public.ecr.aws/karpenter/karpenter
+        wait: true
+        state: absent
+
+    - name: Delete Karpenter namespace
+      kubernetes.core.k8s:
+        api_version: v1
+        kind: Namespace
+        name: karpenter
+        state: absent
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        wait: true

@@ -1,0 +1,6 @@
+- import_playbook: playbooks/pvc/decommission.yml
+- import_playbook: playbooks/autoscale/iam-roles-policies/delete-policies.yml
+  when: autoscale_enabled
+- import_playbook: delete_services.yml
+- import_playbook: delete_nodes.yml
+- import_playbook: playbooks/eks/decommission.yml

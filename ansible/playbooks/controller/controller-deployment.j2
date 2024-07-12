@@ -1,0 +1,98 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  creationTimestamp: null
+  name: "saga-controller-role"
+rules:
+  - apiGroups: ["", "apps", "networking.k8s.io"]
+    resources: ["namespaces", "services", "pods", "deployments", "deployments/scale", "statefulsets", "persistentvolumeclaims", "ingresses", "configmaps"]
+    verbs: ["get", "list", "update", "watch", "delete", "create"]
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRoleBinding
+metadata:
+  creationTimestamp: null
+  name: "saga-controller-role-binding"
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: "saga-controller-role"
+subjects:
+  - kind: ServiceAccount
+    name: default
+    namespace: {{app.namespace}}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "saga-controller"
+  namespace: {{app.namespace}}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: {{app.name}}
+  template:
+    metadata:
+      labels:
+        app: {{app.name}}
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9000"
+    spec:
+      imagePullSecrets:
+        - name: regcred
+      containers:
+        - image: {{container_image}}
+          name: {{app.name}}
+          env:
+          - name: UID
+            valueFrom:
+              fieldRef:
+                apiVersion: v1
+                fieldPath: metadata.uid
+          ports:
+            - containerPort: 19090
+            - containerPort: 18090
+            - containerPort: 9000
+          volumeMounts:
+          - name: "kube-config"
+            mountPath: "/etc/saga/kube"
+          - name: "aws-config"
+            mountPath: "/root/.aws"
+          - name: "controller-config"
+            mountPath: "/etc/saga/controller"
+          - name: "controller-config-kube"
+            mountPath: "/etc/saga/controller/kube"
+          - name: "fluentd-logs"
+            mountPath: "/var/log/saga"
+            subPathExpr: $(UID)
+          resources:
+            requests:
+              memory: "2Gi"
+              cpu: "1"
+            limits:
+              memory: "4Gi"
+              cpu: "2"
+      volumes:
+      - name: "kube-config"
+        secret:
+          secretName: "kube-config"
+          optional: true
+      - name: "aws-config"
+        secret:
+          secretName: "aws-config"
+          optional: true
+      - name: "controller-config"
+        configMap:
+          name: "controller-config"
+      - name: "controller-config-kube"
+        configMap:
+          name: "controller-config-kube"
+      - name: "fluentd-logs"
+        hostPath:
+          path: /var/log/saga
+          type: DirectoryOrCreate
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always

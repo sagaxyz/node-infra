@@ -1,0 +1,502 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blockscout-backend-configmap
+  namespace: "{{ .Namespace }}"
+data:
+  API_V2_ENABLED: "true"
+  PERMANENT_DARK_MODE_ENABLED: "true"
+  ETHEREUM_JSONRPC_VARIANT: geth
+  ETHEREUM_JSONRPC_HTTP_URL: "http://{{ .Name }}:8545"
+  ETHEREUM_JSONRPC_GETH_TRACE_BY_BLOCK: "false"
+  ETHEREUM_JSONRPC_WS_URL: "ws://{{ .Name }}:8546"
+  DATABASE_URL: "postgresql://%%% explorer_db.user %%%:%%% explorer_db.password %%%@blockscout-db.blockscout.svc.cluster.local:5432/blockscout-{{ .ChainId }}"
+  DATABASE_READ_ONLY_API_URL: "postgresql://%%% explorer_db.user %%%:%%% explorer_db.password %%%@blockscout-db-ro.blockscout.svc.cluster.local:5432/blockscout-{{ .ChainId }}"
+  NETWORK: ""
+  SUBNETWORK: "{{ .ChainName }}"
+  LOGO: /images/saga_logo.svg
+  LOGO_FOOTER: /images/saga_logo.svg
+  ETHEREUM_JSONRPC_TRANSPORT: http
+  ETHEREUM_JSONRPC_DISABLE_ARCHIVE_BALANCES: "false"
+  IPC_PATH: ""
+  NETWORK_PATH: /
+  BLOCKSCOUT_PROTOCOL: ""
+  BLOCKSCOUT_VERSION: "6.0.0"
+  PORT: "4000"
+  COIN_NAME: {{ .CoinDenom }}
+  EMISSION_FORMAT: DEFAULT
+  COIN: {{ .CoinDenom }}
+  POOL_SIZE: "5"
+  POOL_SIZE_API: "5"
+  ECTO_USE_SSL: "true"
+  HEART_BEAT_TIMEOUT: "30"
+  RELEASE_LINK: ""
+  BLOCK_TRANSFORMER: base
+  FOOTER_LINK_TO_OTHER_EXPLORERS: "false"
+  SUPPORTED_CHAINS: "{ }"
+  CACHE_BLOCK_COUNT_PERIOD: "60"
+  CACHE_TXS_COUNT_PERIOD: "300"
+  CACHE_ADDRESS_SUM_PERIOD: "3600"
+  CACHE_TOTAL_GAS_USAGE_PERIOD: "3600"
+  CACHE_ADDRESS_TRANSACTIONS_GAS_USAGE_COUNTER_PERIOD: "1800"
+  CACHE_TOKEN_HOLDERS_COUNTER_PERIOD: "3600"
+  CACHE_TOKEN_TRANSFERS_COUNTER_PERIOD: "3600"
+  CACHE_ADDRESS_WITH_BALANCES_UPDATE_INTERVAL: "1800"
+  CACHE_AVERAGE_BLOCK_PERIOD: "1800"
+  CACHE_MARKET_HISTORY_PERIOD: "21600"
+  CACHE_ADDRESS_TRANSACTIONS_COUNTER_PERIOD: "1800"
+  CACHE_ADDRESS_TOKENS_USD_SUM_PERIOD: "1800"
+  CACHE_ADDRESS_TOKEN_TRANSFERS_COUNTER_PERIOD: "1800"
+  TOKEN_METADATA_UPDATE_INTERVAL: "172800"
+  UNCLES_IN_AVERAGE_BLOCK_TIME: "false"
+  DISABLE_WEBAPP: "false"
+  API_V1_READ_METHODS_DISABLED: "false"
+  API_V1_WRITE_METHODS_DISABLED: "false"
+  DISABLE_INDEXER: "false"
+  DISABLE_REALTIME_INDEXER: "false"
+  INDEXER_DISABLE_TOKEN_INSTANCE_REALTIME_FETCHER: "false"
+  INDEXER_DISABLE_TOKEN_INSTANCE_RETRY_FETCHER: "false"
+  INDEXER_DISABLE_TOKEN_INSTANCE_SANITIZE_FETCHER: "false"
+  INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER: "false"
+  INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER: "false"
+  WOBSERVER_ENABLED: "false"
+  SHOW_ADDRESS_MARKETCAP_PERCENTAGE: "true"
+  CHECKSUM_ADDRESS_HASHES: "true"
+  CHECKSUM_FUNCTION: eth
+  DISABLE_EXCHANGE_RATES: "true"
+  DISABLE_KNOWN_TOKENS: "false"
+  TXS_STATS_ENABLED: "true"
+  SHOW_PRICE_CHART_LEGEND: "false"
+  SHOW_TXS_CHART: "true"
+  HISTORY_FETCH_INTERVAL: "30"
+  TXS_HISTORIAN_INIT_LAG: "0"
+  TXS_STATS_DAYS_TO_COMPILE_AT_INIT: "10"
+  COIN_BALANCE_HISTORY_DAYS: "90"
+  APPS_MENU: "false"
+  EXTERNAL_APPS: "[ ]"
+  SHOW_MAINTENANCE_ALERT: "false"
+  MAINTENANCE_ALERT_MESSAGE: ""
+  CUSTOM_CONTRACT_ADDRESSES_TEST_TOKEN: ""
+  SOURCIFY_INTEGRATION_ENABLED: "false"
+  SOURCIFY_SERVER_URL: ""
+  SOURCIFY_REPO_URL: ""
+  CHAIN_ID: "{{ .ChainIdNumber }}"
+  MAX_SIZE_UNLESS_HIDE_ARRAY: "50"
+  HIDE_BLOCK_MINER: "false"
+  DISPLAY_TOKEN_ICONS: "false"
+  SHOW_TENDERLY_LINK: "false"
+  TENDERLY_CHAIN_PATH: ""
+  MAX_STRING_LENGTH_WITHOUT_TRIMMING: "2040"
+  RE_CAPTCHA_SECRET_KEY: ""
+  RE_CAPTCHA_CLIENT_KEY: ""
+  JSON_RPC: "{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% rpc_url_suffixes[0] %%%"
+  API_RATE_LIMIT: "50"
+  API_RATE_LIMIT_BY_KEY: "50"
+  API_RATE_LIMIT_BY_WHITELISTED_IP: "50"
+  API_RATE_LIMIT_WHITELISTED_IPS: ""
+  API_RATE_LIMIT_STATIC_API_KEY: ""
+  FETCH_REWARDS_WAY: trace_block
+  MICROSERVICE_SC_VERIFIER_ENABLED: "true"
+  MICROSERVICE_SC_VERIFIER_URL: "http://blockscout-sc-verifier.blockscout.svc.cluster.local:8050"
+  MICROSERVICE_VISUALIZE_SOL2UML_ENABLED: "false"
+  MICROSERVICE_VISUALIZE_SOL2UML_URL: ""
+  MICROSERVICE_SIG_PROVIDER_ENABLED: "false"
+  MICROSERVICE_SIG_PROVIDER_URL: ""
+  RE_CAPTCHA_DISABLED: "true"
+  HIDE_BLOCK_MINER: "true"
+  INDEXER_HIDE_INDEXING_PROGRESS_ALERT: "false"
+  SECRET_KEY_BASE: "%%% explorer_secret_key_base %%%"
+  DISABLE_WEBAPP: "true"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blockscout-frontend-configmap
+  namespace: "{{ .Namespace }}"
+data:
+  NEXT_PUBLIC_APP_HOST: "{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% explorer_url_suffixes[0] %%%"
+  NEXT_PUBLIC_APP_PORT: "443"
+  NEXT_PUBLIC_AD_BANNER_PROVIDER: "none"
+  NEXT_PUBLIC_AD_TEXT_PROVIDER: "none"
+  NEXT_PUBLIC_NETWORK_NAME: "{{ .ChainName }}"
+  NEXT_PUBLIC_NETWORK_SHORT_NAME: "{{ .ChainName }}"
+  NEXT_PUBLIC_NETWORK_ID: "{{ .ChainIdNumber }}"
+  NEXT_PUBLIC_NETWORK_RPC_URL: "https://{{ .ChainName }}-{{ .ChainIdNumber }}-1.jsonrpc.%%% rpc_url_suffixes[0] %%%"
+  NEXT_PUBLIC_NETWORK_CURRENCY_NAME: "{{ .CoinDenom }}"
+  NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: "{{ .CoinDenom }}"
+  NEXT_PUBLIC_NETWORK_VERIFICATION_TYPE: "validation"
+  NEXT_PUBLIC_IS_TESTNET: "%%% is_testnet | default(true) | string | lower %%%"
+  NEXT_PUBLIC_API_HOST: "api-{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% explorer_url_suffixes[0] %%%"
+  NEXT_PUBLIC_NETWORK_LOGO_DARK: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_network_logo_dark.svg"
+  NEXT_PUBLIC_NETWORK_LOGO: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_network_logo.svg"
+  NEXT_PUBLIC_NETWORK_ICON: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_network_icon.svg"
+  NEXT_PUBLIC_NETWORK_ICON_DARK: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_network_icon_dark.svg"
+  FAVICON_GENERATOR_API_KEY: "70cbe8175640c806816ac035dabb7131d0265ffb"
+  NEXT_PUBLIC_PROMOTE_BLOCKSCOUT_IN_TITLE: "false"
+  NEXT_PUBLIC_OG_IMAGE_URL: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_og_image.jpg"
+  NEXT_PUBLIC_OG_DESCRIPTION: "Saga is more than your own dedicated and configurable blockchain - it’s a vibrant community where innovators are collaborating, learning, sharing, and creating the future together. Welcome to Saga, welcome to the Multiverse."
+  NEXT_PUBLIC_HOMEPAGE_PLATE_BACKGROUND: "linear-gradient(280deg, rgba(255,255,255,1) 0%, rgba(102,235,227,1) 25%, rgba(36,226,215,1) 50%, rgba(22,136,129,1) 75%, rgba(25,9,51,1) 100%);"
+  NEXT_PUBLIC_FOOTER_LINKS: "https://saga-public-assets.s3.amazonaws.com/blockscout/configs/footer_links.json"
+  NEXT_PUBLIC_HIDE_INDEXING_ALERT_BLOCKS: "true"
+  NEXT_PUBLIC_HIDE_INDEXING_ALERT_INT_TXS: "true"
+  NEXT_PUBLIC_AD_TEXT_PROVIDER: "none" 
+  NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID: "%%% wallet_id_connect_client_id | default('') %%%"
+  NEXT_PUBLIC_HOMEPAGE_CHARTS: "['daily_txs']"
+  NEXT_PUBLIC_STATS_API_HOST: "https://stats-{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% explorer_url_suffixes[0] %%%"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blockscout-stats-configmap
+  namespace: "{{ .Namespace }}"
+data:
+  STATS__SERVER__HTTP__ENABLED: "true"
+  STATS__SERVER__HTTP__ADDR: "0.0.0.0:8051"
+  STATS__SERVER__HTTP__MAX_BODY_SIZE: "2097152"
+  STATS__DEFAULT_SCHEDULE: "0 0 1 * * * *"
+  STATS__TRACING__ENABLED: "true"
+  STATS__TRACING__FORMAT: "default"
+  STATS__DB_URL: "postgresql://%%% explorer_db.user %%%:%%% explorer_db.password %%%@blockscout-db-stats.blockscout.svc.cluster.local:5432/stats-{{ .ChainId }}"
+  STATS__BLOCKSCOUT_DB_URL: "postgresql://%%% explorer_db.user %%%:%%% explorer_db.password %%%@blockscout-db-ro.blockscout.svc.cluster.local:5432/blockscout-{{ .ChainId }}"
+  STATS__CREATE_DATABASE: "true"
+  STATS__RUN_MIGRATIONS: "true"
+  STATS__METRICS__ENABLED: "false"
+  STATS__METRICS__ADDR: "0.0.0.0:6060"
+  STATS__METRICS__ROUTE: "/metrics"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blockscout-backend
+  namespace: "{{ .Namespace }}"
+  labels:
+    app: blockscout-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: blockscout-backend
+  ports:
+    - targetPort: 4000
+      port: 4000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blockscout-stats
+  namespace: "{{ .Namespace }}"
+  labels:
+    app: blockscout-stats
+spec:
+  type: ClusterIP
+  selector:
+    app: blockscout-stats
+  ports:
+    - targetPort: 8051
+      port: 8051
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blockscout-frontend
+  namespace: "{{ .Namespace }}"
+  labels:
+    app: blockscout-frontend
+spec:
+  type: ClusterIP
+  ports:
+    - targetPort: 3000
+      port: 3000
+  selector:
+    app: blockscout-frontend
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-blockscout-frontend
+  namespace: "{{ .Namespace }}"
+  annotations:
+    saga.xyz/ingress-protocol: "explorer"
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in explorer_url_suffixes %}
+    - host: "{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% url %%%"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: blockscout-frontend
+                port:
+                  number: 3000
+{% endfor %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-blockscout-stats
+  namespace: "{{ .Namespace }}"
+  annotations:
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header Access-Control-Allow-Origin *;
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in explorer_url_suffixes %}
+    - host: "stats-{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% url %%%"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: blockscout-stats
+                port:
+                  number: 8051
+{% endfor %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-blockscout-backend
+  namespace: "{{ .Namespace }}"
+  annotations:
+    nginx.org/websocket-services: blockscout-backend
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in explorer_url_suffixes %}
+    - host: "api-{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% url %%%"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: blockscout-backend
+                port:
+                  number: 4000
+{% endfor %}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "blockscout-backend"
+  namespace: "{{ .Namespace }}"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: "blockscout-backend"
+  template:
+    metadata:
+      labels:
+        app: "blockscout-backend"
+        chainId: "{{ .ChainId }}"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4000"
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+      containers:
+        - name: blockscout-backend
+          image: "blockscout/blockscout:6.0.0"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 300Mi
+            limits:
+              cpu: 200m
+              memory: 500Mi
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+          args:
+            - -c
+            - bin/blockscout start
+          ports:
+            - containerPort: 4000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: blockscout-backend-configmap
+          env:
+            - name: DISABLE_INDEXER
+              value: "true"
+            - name: DISABLE_WEBAPP
+              value: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "blockscout-indexer"
+  namespace: "{{ .Namespace }}"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: "blockscout-indexer"
+  template:
+    metadata:
+      labels:
+        app: "blockscout-indexer"
+        chainId: "{{ .ChainId }}"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "4000"
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+      containers:
+        - name: blockscout-indexer
+          image: "blockscout/blockscout:6.0.0"
+          resources:
+            requests:
+              cpu: 500m
+              memory: 350Mi
+            limits:
+              cpu: 1500m
+              memory: 700Mi
+          imagePullPolicy: IfNotPresent
+          command:
+            - /bin/sh
+          args:
+            - -c
+            - bin/blockscout eval "Elixir.Explorer.ReleaseTasks.create_and_migrate()" && bin/blockscout start
+          ports:
+            - containerPort: 4000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: blockscout-backend-configmap
+          env:
+            - name: DISABLE_WEBAPP
+              value: "true"
+            - name: API_V1_READ_METHODS_DISABLED
+              value: "true"
+            - name: API_V1_WRITE_METHODS_DISABLED
+              value: "true"
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "blockscout-stats"
+  namespace: "{{ .Namespace }}"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: "blockscout-stats"
+  template:
+    metadata:
+      labels:
+        app: "blockscout-stats"
+        chainId: "{{ .ChainId }}"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+      containers:
+        - image: ghcr.io/blockscout/stats:v1.5.0
+          resources:
+            requests:
+              cpu: 10m
+              memory: 30Mi
+            limits:
+              cpu: 20m
+              memory: 50Mi
+          imagePullPolicy: IfNotPresent
+          name: blockscout-stats
+          volumeMounts:
+          - name: blockscout-stats-charts
+            mountPath: /app/config/charts.json
+            subPath: charts.json
+          envFrom:
+            - configMapRef:
+                name: blockscout-stats-configmap
+        - image: sagaxyz/blockscout-exporter:0.1.1
+          resources:
+            requests:
+              cpu: 10m
+              memory: 5Mi
+            limits:
+              cpu: 20m
+          imagePullPolicy: IfNotPresent
+          name: blockscout-exporter
+          ports:
+            - containerPort: 9090
+          env:
+          - name: CHAINID
+            value: "{{ .ChainId }}"
+          - name: FETCH_INTERVAL_SEC
+            value: "10"
+          - name: STATS_ENDPOINT
+            value: "http://blockscout-backend:4000/api/v2/stats"
+      volumes:
+        - name: blockscout-stats-charts
+          configMap:
+            name: blockscout-stats-charts
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "blockscout-frontend"
+  namespace: "{{ .Namespace }}"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: "blockscout-frontend"
+  template:
+    metadata:
+      labels:
+        app: "blockscout-frontend"
+        chainId: "{{ .ChainId }}"
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+      containers:
+        - name: blockscout-frontend
+          image: "ghcr.io/blockscout/frontend:v1.17.0"
+          resources:
+            requests:
+              cpu: 100m
+              memory: 100Mi
+            limits:
+              cpu: 250m
+              memory: 256Mi
+          imagePullPolicy: IfNotPresent
+          ports:
+            - containerPort: 3000
+              protocol: TCP
+          envFrom:
+            - configMapRef:
+                name: blockscout-frontend-configmap
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blockscout-stats-charts
+  namespace: "{{ .Namespace }}"
+data:
+  charts.json: |
+{% filter indent(width=4) %}
+    {% include 'includes/charts.json' %}
+{% endfilter %}

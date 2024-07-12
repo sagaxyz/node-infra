@@ -1,0 +1,117 @@
+---
+apiVersion: batch/v1
+kind: CronJob
+metadata:
+  name: {{ app.name }}-spanshot
+  namespace: {{ app.namespace }}
+  labels:
+    app: {{ app.name }}-spanshot
+spec:
+  schedule: "0 0 * * *"
+  concurrencyPolicy: Forbid
+  jobTemplate:
+    spec:
+      template:
+        spec:
+          imagePullSecrets:
+            - name: regcred
+          serviceAccountName: {{ app.name }}-sa
+          containers:
+            - image: {{ container_image }}
+              name: {{ app.name }}
+              command: ["bash", "/root/snapshot.sh"]
+              env:
+              - name: S3_SNAPSHOTS_BUCKET
+                value: {{ snapshot.spc.bucket }}
+              - name: S3_SNAPSHOTS_RETENTION
+                value: "{{ snapshot.spc.retention }}"
+              - name: KEYNAME
+                value: {{ keyname }}
+              - name: CHAINID
+                value: {{ chain_id }}
+              - name: MONIKER
+                value: {{ moniker }}
+              - name: KEYRING
+                value: {{ conf.KEYRING }}
+              - name: KEYALGO
+                value: {{ conf.KEYALGO }}
+              - name: LOGLEVEL
+                value: {{ conf.LOGLEVEL }}
+              - name: TRACE
+                value: "{{ conf.TRACE }}"
+              - name: SLEEPTIME
+                value: "{{ conf.SLEEPTIME }}"
+              - name: EXTERNAL_ADDRESS
+                value: "{{ spc_external_address_host }}"
+              - name: AWS_DEFAULT_REGION
+                value: {{ aws_region }}
+              - name: QUORUM_COUNT
+                value: "{{ quorum_count }}"
+              - name: VALIDATOR_ADDRESSES
+                value: {{ validator_addresses }}
+              - name: VALIDATOR_PROVIDER
+                value: "{{ validator_provider }}"
+{% if pruning_strategy is defined %}
+              - name: PRUNING_STRATEGY
+                value: {{ pruning_strategy }}
+{% endif %}
+              ports:
+                - name: tmint-rpc-1-{{ app.name }}
+                  containerPort: 26656
+                - name: tmint-rpc-2-{{ app.name }}
+                  containerPort: 26657
+                - name: http
+                  containerPort: 1317
+                - name: grpc
+                  containerPort: 9090
+                - name: metrics
+                  containerPort: 26660
+              volumeMounts:
+              - name: saga-{{ app.name }}-persistent-storage
+                mountPath: /root/.spc
+              - name: "{{ app.name }}-snapshot-configmap"
+                mountPath: "/root/snapshot.sh"
+                subPath: snapshot.sh
+              resources:
+                requests:
+                  memory: "0.5Gi"
+                  cpu: "1"
+                limits:
+                  memory: "4Gi"
+                  cpu: "3"
+          volumes:
+          - name: saga-{{ app.name }}-persistent-storage
+            persistentVolumeClaim:
+              claimName: saga-{{ app.name }}-snapshot-pvc
+          - name: {{ app.name }}-snapshot-configmap
+            configMap:
+              name: {{ app.name }}-snapshot-configmap
+              defaultMode: 0777
+          nodeSelector:
+            kubernetes.io/os: linux
+          restartPolicy: OnFailure
+---
+apiVersion: v1
+kind: PersistentVolumeClaim
+metadata:
+  name: saga-{{ app.name }}-snapshot-pvc
+  namespace: {{ app.namespace }}
+  labels:
+    app: "{{ app.name }}-snapshot"
+spec:
+  accessModes:
+    - ReadWriteOnce
+  resources:
+    requests:
+      storage: "{{ snapshot.spc.volume_size }}"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: {{ app.name }}-snapshot-configmap
+  namespace: {{ app.namespace }}
+data:
+  snapshot.sh: |
+{% filter indent(width=4) %}
+    {% include 'snapshot.sh' %}
+{% endfilter %}

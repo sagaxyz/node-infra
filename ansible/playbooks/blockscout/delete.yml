@@ -1,0 +1,45 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars:
+    db_instance_identifier: "blockscout-{{ eks_cluster_name }}"
+    subnet_group_name: "{{ db_instance_identifier }}-subnetgroup"
+
+  tasks:
+    - name: Delete RDS instance
+      amazon.aws.rds_instance:
+        state: absent
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        db_instance_identifier: "{{ db_instance_identifier }}"
+        skip_final_snapshot: false
+        final_db_snapshot_identifier: "last{{ db_instance_identifier }}"
+    - name: Delete RDS instance (read only)
+      amazon.aws.rds_instance:
+        state: absent
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        db_instance_identifier: "{{ db_instance_identifier }}-replica-1"
+        skip_final_snapshot: true
+    - name: Delete RDS instance (stats)
+      amazon.aws.rds_instance:
+        state: absent
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        db_instance_identifier: "{{ db_instance_identifier }}-stats-1"
+        skip_final_snapshot: false
+        final_db_snapshot_identifier: "last{{ db_instance_identifier }}stats1"
+
+    - name: Delete subnet group
+      amazon.aws.rds_subnet_group:
+        state: absent
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        name: "{{ subnet_group_name }}"
+
+    - name: Delete security group
+      amazon.aws.ec2_security_group:
+        state: absent
+        name: "{{ db_instance_identifier }}"
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"

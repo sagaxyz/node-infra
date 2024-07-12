@@ -1,0 +1,16 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: blockscout-rules
+  namespace: sagasrv-metrics
+spec:
+  groups:
+  - name: blockscout-group
+    rules:
+    - alert: BlockscoutIndexingFallingBehind
+      annotations:
+        description: Indexing of *{{ $labels.chainId }}* is only *{{ $value }}%*
+        summary: Indexing is behind 95%
+      expr: sum(blockscout_total_blocks) by (chainId) / sum(cometbft_consensus_height) by (chainId) * 100 < 95
+      labels:
+        severity: warning

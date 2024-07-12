@@ -1,0 +1,17 @@
+{% include 'includes/chainlet.yml.tmpl' %}
+
+{% if rpc_enabled %}
+{% include 'includes/ingress.yml.tmpl' %}
+{% endif %}
+
+{% if explorer_sagaevm %}
+{% include 'includes/explorer.yml.tmpl' %}
+{% endif %}
+
+{% if chains_monitor_enabled %}
+{% include 'includes/cosmos-exporter.yml.tmpl' %}
+{% endif %}
+
+{% if relayer_enabled %}
+{% include 'includes/relayer.yml.tmpl' %}
+{% endif %}

@@ -1,0 +1,48 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: stats-exporter
+  namespace: blockscout
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: stats-exporter
+  template:
+    metadata:
+      labels:
+        app: stats-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+      containers:
+        - name: stats-exporter
+          image: sagaxyz/saga-stats-exporter:0.0.5
+          resources:
+            requests:
+              cpu: 10m
+              memory: 5Mi
+            limits:
+              cpu: 20m
+              memory: 50Mi
+          imagePullPolicy: IfNotPresent
+          env:
+            - name: PGUSER
+              value: postgres
+            - name: PGPASSWORD
+              value: "{{ explorer_db.password }}"
+            - name: PGHOST
+              value: blockscout-db-stats.blockscout.svc.cluster.local
+            - name: PGPORT
+              value: "5432"
+            - name: PGSSLMODE
+              value: require
+            - name: FETCH_INTERVAL_SEC
+              value: "60"
+              

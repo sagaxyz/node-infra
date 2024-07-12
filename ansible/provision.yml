@@ -1,0 +1,7 @@
+- import_playbook: playbooks/eks/provision.yml
+- import_playbook: playbooks/oidc/provision.yml
+- import_playbook: playbooks/pvc/provision.yml
+- import_playbook: playbooks/autoscale/iam-roles-policies/setup-policies.yml
+  when: autoscale_enabled
+- import_playbook: playbooks/autoscale/provision.yml
+  when: autoscale_enabled

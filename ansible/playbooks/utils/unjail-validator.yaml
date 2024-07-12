@@ -1,0 +1,101 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars:
+    chain_name: "{{ chain_id | replace('_','-') }}"
+    node: https://{{ chain_name }}.jsonrpc.testnet-srv2.sagarpc.io:443
+    namespace: saga-{{ chain_name }}
+    remote_keypasswd: k3yp@sswD
+    min_balance: 15000000
+    fees: 15000000
+
+  tasks:
+    - name: Get chainlet pod info
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        kind: Pod
+        namespace: "{{ namespace }}"
+        label_selectors:
+          - "app = chainlet"
+      register: pod_info
+    
+    - name: Set denomination as fact
+      set_fact:
+        denomination: "{{ ( pod_info.resources[0].spec.containers[0].env | selectattr('name', 'equalto', 'SPCPARAM_DENOM') | map(attribute='value') | first) }}"
+    
+    - name: Set pod name as fact
+      set_fact:
+         pod_name: "{{ pod_info.resources[0].metadata.name }}"
+
+    - name: Get validator address
+      kubernetes.core.k8s_exec:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        namespace: "{{ namespace }}"
+        pod: "{{ pod_name }}"
+        command: bash -c "echo {{ remote_keypasswd }} | sagaosd keys show -a $KEYNAME"
+      register: address_info
+
+    - name: Set validator address as fact
+      set_fact:
+         validator_address: "{{ address_info.stdout | regex_replace('\n', '') }}"
+
+    - name: Check min balance
+      kubernetes.core.k8s_exec:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        namespace: "{{ namespace }}"
+        pod: "{{ pod_name }}"
+        command: sagaosd query bank balances {{ validator_address }} --denom {{ denomination }}
+      register: balance_info
+    
+    - name: Set validator balance as fact
+      set_fact:
+        validator_balance: "{{ validator_balance_yaml.amount }}"
+      vars:
+        validator_balance_yaml: "{{ balance_info.stdout | from_yaml }}"
+    
+    - name: Set if should transfer coins as fact
+      set_fact:
+        coin_transfer: "{{ validator_balance | float < min_balance }}"
+    
+    - name: Transfer balance (enable port forward)
+      shell: kubectl --kubeconfig {{ k8s_kubeconfig }} -n {{ namespace }} port-forward service/chainlet 26650:26657
+      async: 10
+      poll: 0
+      when: "{{ coin_transfer }}"
+    
+    - name: Pause for 5 seconds wait for port forward
+      ansible.builtin.pause:
+        seconds: 5
+      when: "{{ coin_transfer }}"
+    
+    - name: Transfer balance
+      shell: sagaosd tx bank send {{ dev_account }} {{ validator_address }} {{ amount }}{{ denomination }} --chain-id {{ chain_id }} --node http://localhost:26650 -y --gas=auto --gas-adjustment=1.3 --fees {{ fees }}{{ denomination }}
+      vars:
+        amount: "{{ min_balance - validator_balance | float }}"
+      register: transfer_info
+      when: "{{ coin_transfer }}"
+    
+    - debug:
+        msg: "{{ transfer_info }}"
+      when: "{{ coin_transfer }}"
+    
+    - name: Pause for 10 seconds wait for the transfer
+      ansible.builtin.pause:
+        seconds: 10
+      when: "{{ coin_transfer }}"
+
+    - debug:
+        msg: "echo {{ remote_keypasswd }} | sagaosd tx slashing unjail --from chainlet-operator-key --gas=auto --gas-adjustment=1.3 --fees {{ fees }}{{ denomination }} -y"
+    
+    - name: Unjail validator
+      kubernetes.core.k8s_exec:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        namespace: "{{ namespace }}"
+        pod: "{{ pod_name }}"
+        command: bash -c "echo {{ remote_keypasswd }} | sagaosd tx slashing unjail --from chainlet-operator-key --gas=auto --gas-adjustment=1.3 --fees {{ fees }}{{ denomination }} -y"
+      register: unjail_info
+    
+    - debug:
+        msg: "{{ unjail_info }}"
+      

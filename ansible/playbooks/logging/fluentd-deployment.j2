@@ -1,0 +1,246 @@
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: fluentd
+  namespace: kube-system
+
+---
+apiVersion: rbac.authorization.k8s.io/v1
+kind: ClusterRole
+metadata:
+  name: fluentd
+rules:
+- apiGroups:
+  - ""
+  resources:
+  - pods
+  - namespaces
+  verbs:
+  - get
+  - list
+  - watch
+
+---
+kind: ClusterRoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: fluentd
+roleRef:
+  kind: ClusterRole
+  name: fluentd
+  apiGroup: rbac.authorization.k8s.io
+subjects:
+- kind: ServiceAccount
+  name: fluentd
+  namespace: kube-system
+---
+apiVersion: apps/v1
+kind: DaemonSet
+metadata:
+  name: fluentd
+  namespace: kube-system
+  labels:
+    k8s-app: fluentd-logging
+    version: v1
+spec:
+  selector:
+    matchLabels:
+      k8s-app: fluentd-logging
+      version: v1
+  template:
+    metadata:
+      labels:
+        k8s-app: fluentd-logging
+        version: v1
+    spec:
+      serviceAccount: fluentd
+      serviceAccountName: fluentd
+      tolerations:
+      - key: node-role.kubernetes.io/control-plane
+        effect: NoSchedule
+      - key: node-role.kubernetes.io/master
+        effect: NoSchedule
+      initContainers:
+        - name: logrotate-config-init
+          image: busybox:1.36
+          command: ["sh", "-c", "cp /fluentd-config/saga /etc/logrotate.d/saga"]
+          volumeMounts:
+            - name: logrotateconfigdirectory
+              mountPath: /etc/logrotate.d
+            - name: fluentd-config
+              mountPath: /fluentd-config/saga
+              subPath: saga
+      containers:
+      - name: fluentd
+        image: fluent/fluentd-kubernetes-daemonset:v1-debian-elasticsearch
+        env:
+          - name: K8S_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+        resources:
+          requests:
+            cpu: 1000m
+            memory: 1000Mi
+          limits:
+            cpu: 1500m
+            memory: 1500Mi
+        volumeMounts:
+        - name: fluentd-config
+          mountPath: /fluentd/etc
+          readOnly: true
+        - name: varlog
+          mountPath: /var/log
+        - name: dockercontainerlogdirectory
+          mountPath: /var/log/containers
+          readOnly: true
+        - name: sagalogdirectory
+          mountPath: /var/log/saga
+          readOnly: true
+      terminationGracePeriodSeconds: 30
+      volumes:
+      - name: fluentd-config
+        configMap:
+            name: fluentd-config
+      - name: varlog
+        hostPath:
+          path: /var/log
+      - name: dockercontainerlogdirectory
+        hostPath:
+          path: /var/log/containers
+      - name: sagalogdirectory
+        hostPath:
+          path: /var/log/saga
+      - name: logrotateconfigdirectory
+        hostPath:
+          path: /etc/logrotate.d
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: fluentd-config
+  namespace: kube-system
+  labels:
+    app: fluentd-logging
+data:
+  saga: |-
+    /var/log/saga/*/*.log {
+      weekly
+      missingok
+      rotate 4
+      compress
+      size 500M
+      notifempty
+      create 0640 root root
+      sharedscripts
+      endscript
+    }
+  fluent.conf: |-
+    <filter **>
+      @type record_transformer
+      <record>
+        cluster_name "{{ eks_cluster_name }}"
+      </record>
+    </filter>
+
+    <filter kubernetes.**>
+      @type kubernetes_metadata
+      @id filter_kube_metadata
+      kubernetes_url "#{ENV['FLUENT_FILTER_KUBERNETES_URL'] || 'https://' + ENV.fetch('KUBERNETES_SERVICE_HOST') + ':' + ENV.fetch('KUBERNETES_SERVICE_PORT') + '/api'}"
+      verify_ssl false
+      ca_file 
+      skip_labels true
+      skip_container_metadata false
+      skip_master_url false
+      skip_namespace_metadata false
+      watch true
+    </filter>
+
+    <filter kubernetes-json.**>
+      @type grep
+      <regexp>
+        key level
+        pattern error
+      </regexp>
+    </filter>
+
+    <filter kubernetes.**>
+      @type grep
+      <regexp>
+        key stream
+        pattern stderr
+      </regexp>
+    </filter>
+
+    <match **>
+      @type elasticsearch
+      @id out_es
+      @log_level "info"
+      include_tag_key true
+      host "{{ elasticsearch_info.host }}"
+      port "{{ elasticsearch_info.port }}"
+      path ""
+      scheme "{{ elasticsearch_info.scheme }}"
+      ssl_verify false
+      ssl_version TLSv1_2
+      user "{{ elasticsearch_info.username }}"
+      password "{{ elasticsearch_info.password }}"
+      reload_connections false
+      reconnect_on_error true
+      reload_on_failure true
+      log_es_400_reason true
+      logstash_prefix "logstash"
+      logstash_dateformat "%Y.%m.%d"
+      logstash_format true
+      index_name "logstash"
+      target_index_key 
+      type_name "fluentd"
+      include_timestamp false
+      template_name 
+      template_file 
+      template_overwrite false
+      sniffer_class_name "Fluent::Plugin::ElasticsearchSimpleSniffer"
+      request_timeout 5s
+      application_name default
+      suppress_type_name true
+      enable_ilm true
+      ilm_policy_id logstash-policy
+      ilm_policy {}
+      ilm_policy_overwrite false
+      <buffer>
+        flush_thread_count 8
+        flush_interval 5s
+        chunk_limit_size 2M
+        queue_limit_length 32
+        retry_max_interval 30
+        retry_forever false
+      </buffer>
+    </match>
+
+    <source>
+      @type tail
+      @id in_tail_container_json_logs
+      path "/var/log/saga/**/*.log"
+      pos_file "/var/log/fluentd-containers-json.log.pos"
+      tag "kubernetes-json.*"
+      read_from_head true
+      <parse>
+        @type "json"
+        time_type "unixtime"
+      </parse>
+    </source>
+
+    <source>
+      @type tail
+      @id in_tail_container_logs
+      path "/var/log/containers/*.log"
+      pos_file "/var/log/fluentd-containers.log.pos"
+      tag "kubernetes.*"
+      exclude_path []
+      read_from_head false
+      <parse>
+        @type regexp
+        expression /^(?<time>.+) (?<stream>stdout|stderr)( (?<logtag>.))? (?<log>.*)$/
+      </parse>
+    </source>

@@ -1,0 +1,28 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  tasks:
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}
+        state: directory
+        mode: '0744'
+
+    - name: Generate Ingress Controller spec
+      ansible.builtin.template:
+        src: ingress-controller.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/ingress-controller.yml
+        mode: '0644'
+
+    - name: Generate Ingress Errors spec
+      ansible.builtin.template:
+        src: ingress-controller-pre.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/ingress-controller-pre.yml
+        mode: '0644'
+
+    - name: Generate Ingress Controller Healthz endpoints
+      ansible.builtin.template:
+        src: healthz-ingress.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/healthz-ingress.yml
+        mode: '0644'
+      when: explorer_generic_url_suffix is defined or rpc_generic_url_suffix is defined

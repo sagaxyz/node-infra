@@ -1,0 +1,20 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  tasks:
+    - name: Uninstall Ebs csi driver
+      kubernetes.core.helm:
+        name: aws-ebs-csi-driver
+        chart_ref: "https://github.com/kubernetes-sigs/aws-ebs-csi-driver/releases/download/helm-chart-aws-ebs-csi-driver-2.17.2/aws-ebs-csi-driver-2.17.2.tgz"
+        release_namespace: kube-system
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        wait: true
+
+    - name: Delete IAM role for EBS CSI driver
+      amazon.aws.iam_role:
+        name: "{{ eks_cluster_name }}-ebs-role"
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        state: absent

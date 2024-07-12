@@ -1,0 +1,33 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  tasks:
+    - name: Get elb info spc
+      kubernetes.core.k8s_info:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        kind: Service
+        name: spc
+        namespace: sagasrv-spc
+      register: elb_info
+
+    - name: Set the load balancer URL as a fact.
+      set_fact:
+        spc_lb_host: "{{ elb_info['resources'][0]['status']['loadBalancer']['ingress'][0]['hostname'] }}"
+      when: aws_environment | bool
+
+    - name: Add an CNAME record in Route53 (if configured).
+      route53:
+        profile: "{{ aws_profile }}"
+        zone: '{{ route53_zone }}'
+        record: '{{ external_address_host }}'
+        state: present
+        type: CNAME
+        ttl: 300
+        value: '{{ spc_lb_host }}.'
+        wait: true
+      when:
+        - aws_environment | bool
+        - route53_zone != ''
+        - external_address_host != ''
+        

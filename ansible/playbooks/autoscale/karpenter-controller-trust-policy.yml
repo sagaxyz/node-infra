@@ -1,0 +1,33 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: Create KarpenterControllerRole
+Parameters:
+  ClusterName:
+    Type: String
+    Description: The name of the cluster.
+  AccountID:
+    Type: String
+    Description: The AWS Account ID.
+  OIDCEndpoint:
+    Type: String
+    Description: The OIDC Endpoint for the cluster.
+
+Resources:
+  KarpenterControllerRole:
+    Type: AWS::IAM::Role
+    Properties:
+      RoleName:
+        Fn::Sub: "KarpenterControllerRole-${ClusterName}"
+      AssumeRolePolicyDocument:
+        Version: '2012-10-17'
+        Statement:
+          - Effect: Allow
+            Principal:
+              Federated:
+                Fn::Sub: "arn:aws:iam::${AccountID}:oidc-provider/${OIDCEndpoint}"
+            Action:
+              - sts:AssumeRoleWithWebIdentity
+            Condition:
+              StringEquals:
+                Fn::Sub: "${OIDCEndpoint}:aud": "sts.amazonaws.com"
+                Fn::Sub: "${OIDCEndpoint}:sub": "system:serviceaccount:karpenter:karpenter"
+

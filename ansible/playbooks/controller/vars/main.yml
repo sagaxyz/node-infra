@@ -1,0 +1,11 @@
+deployment_enabled: true
+
+docker_registry: docker.io
+
+app:
+  name: controller
+  namespace: sagasrv-controller
+  docker_repo: sagaxyz
+
+container_image: "{{ docker_registry }}/{{ app.docker_repo }}/controller:{{ versions.controller }}"
+relayer_image: "%%% docker_registry %%%/%%% app.docker_repo %%%/controller-relayer:%%% versions.relayer %%%"

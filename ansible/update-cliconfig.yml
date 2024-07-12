@@ -1,0 +1,19 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  tasks:
+    - name: Update spcd config node
+      shell: spcd config node "tcp://{{ spc_external_address_host }}:26657"
+
+    - name: Update spcd config chain-id
+      shell: spcd config chain-id {{ chain_id }}
+
+    - name: Update sagacli config controller
+      shell: sagacli config controller "https://{{ controller_external_address_host }}"
+
+    - name: Update sagacli config network-rpc
+      shell: sagacli config network-rpc "https://{{ spc_external_address_host }}"
+
+    - name: Update sagacli config platform-chain-id
+      shell: sagacli config platform-chain-id {{ chain_id }}

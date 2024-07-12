@@ -1,0 +1,63 @@
+---
+AWSTemplateFormatVersion: "2010-09-09"
+Description: 'EKS Node Group definition.'
+
+Parameters:
+
+  ClusterName:
+    Type: String
+    Description: The EKS cluster name.
+
+  NodeGroupName:
+    Type: String
+    Description: Unique identifier for the Node Group.
+
+  NodeInstanceType:
+    Type: String
+    Default: m5a.4xlarge
+    Description: EC2 instance type for the node instances.
+
+  NodeGroupDesiredCapacity:
+    Type: Number
+    Default: 1
+    Description: Desired capacity of Node Group ASG.
+
+  Subnets:
+    Type: "List<AWS::EC2::Subnet::Id>"
+    Description: The subnets where workers can be created.
+
+Resources:
+
+  NodeInstanceRole:
+    Type: "AWS::IAM::Role"
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: "2012-10-17"
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - ec2.amazonaws.com
+            Action:
+              - "sts:AssumeRole"
+      ManagedPolicyArns:
+        - "arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy"
+        - "arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy"
+        - "arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly"
+        - "arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore"
+      Path: /
+
+  NodeGroup:
+    Type: 'AWS::EKS::Nodegroup'
+    Properties:
+      NodegroupName: !Ref NodeGroupName
+      ClusterName: !Ref ClusterName
+      DiskSize: 200
+      NodeRole: !GetAtt NodeInstanceRole.Arn
+      InstanceTypes:
+        - !Ref NodeInstanceType
+      ScalingConfig:
+        MinSize: 1
+        DesiredSize: !Ref NodeGroupDesiredCapacity
+        MaxSize: 50
+      Subnets: !Ref Subnets

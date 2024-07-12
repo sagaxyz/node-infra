@@ -1,0 +1,77 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  pre_tasks:
+    - name: Install cloudformation dependencies
+      ansible.builtin.pip:
+        name:
+          - boto3>=1.18.0
+          - botocore>=1.21.0
+
+  vars:
+    karpenter_node_role: "KarpenterNodeRole-{{ eks_cluster_name }}"
+    karpenter_instance_profile: "KarpenterInstanceProfile-{{ eks_cluster_name }}"
+    karpenter_controller_role: "KarpenterControllerRole-{{ eks_cluster_name }}"
+
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+
+    - name: Create karpenter node role
+      amazon.aws.iam_role:
+        state: present
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        name: "{{ karpenter_node_role }}"
+        assume_role_policy_document: "{{ lookup('file','node-trust-policy.json') }}"
+        managed_policies:
+          - arn:aws:iam::aws:policy/AmazonEKSWorkerNodePolicy
+          - arn:aws:iam::aws:policy/AmazonEKS_CNI_Policy
+          - arn:aws:iam::aws:policy/AmazonEC2ContainerRegistryReadOnly
+          - arn:aws:iam::aws:policy/AmazonSSMManagedInstanceCore
+
+    - name: Create instance profile
+      amazon.aws.iam_instance_profile:
+        state: present
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        name: "{{ karpenter_instance_profile }}"
+        role: "{{ karpenter_node_role }}"
+
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}
+        state: directory
+        mode: '0744'
+
+    - name: Generate spec for controller trust policy
+      ansible.builtin.template:
+        src: controller-trust-policy.json.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-trust-policy.json
+        mode: '0644'
+
+    - name: Generate spec for controller policy
+      ansible.builtin.template:
+        src: controller-policy.json.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-policy.json
+        mode: '0644'
+
+    - name: Create controller-trust-policy
+      amazon.aws.iam_role:
+        state: present
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        name: "{{ karpenter_controller_role }}"
+        assume_role_policy_document: "{{ lookup('file','~/.ansible/deployments/{{ eks_cluster_name }}/controller-trust-policy.json') }}"
+
+    - name: Attach controller policy
+      amazon.aws.iam_policy:
+        state: present
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        iam_type: role
+        iam_name: "{{ karpenter_controller_role }}"
+        policy_name: "KarpenterControllerPolicy-{{ eks_cluster_name }}"
+        policy_json: "{{ lookup('template', '~/.ansible/deployments/{{ eks_cluster_name }}/controller-policy.json') }}"

@@ -1,0 +1,10 @@
+- import_playbook: playbooks/spc/main.yml
+- import_playbook: playbooks/ssc/main.yml
+  when: snapshot.ssc is defined
+- import_playbook: playbooks/controller/main.yml
+- import_playbook: playbooks/ingress_controller/main.yml
+- import_playbook: playbooks/metrics/main.yml
+- import_playbook: playbooks/logging/main.yml
+  when: elasticsearch_info is defined
+- import_playbook: playbooks/metrics/deploy-alerts.yml
+  when: alertmanager is defined

@@ -1,0 +1,26 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars:
+    alerts_directory_src: prometheus-operator/manifests/alertmanager
+    alerts_directory_dest: ~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/alertmanager
+
+  tasks:
+    - name: Create alerts directory if it does not exist
+      ansible.builtin.file:
+        path: "{{ alerts_directory_dest }}"
+        state: directory
+        mode: '0744'
+
+    - name: Copy configuration file
+      copy:
+        src: "{{ alerts_directory_src }}/alertmanager-config.yaml"
+        dest: "{{ alerts_directory_dest }}"
+        mode: '0644'
+
+    - name: Copy prometheus rules (alerts)
+      copy:
+        src: "{{ alerts_directory_src }}/rules"
+        dest: "{{ alerts_directory_dest }}"
+        mode: '0644'
