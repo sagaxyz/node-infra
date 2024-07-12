@@ -1,4 +1,4 @@
-# Run a validator
+# Run a SAGA validator cluster
 
 ## Prerequisites
 - An AWS account.
