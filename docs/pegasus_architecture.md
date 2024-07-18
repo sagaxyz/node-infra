@@ -4,7 +4,8 @@
 Saga is a Cosmos based blockchain to launch other dedicated blockchains (“chainlets”). At the moment, the operations happen on two separate blockchains:
 - Saga Platform Chain (“SPC”)
 - Saga Security Chain (“SSC”)
-The former is responsible for the chianlet life cycle:
+
+The former is responsible for the chainlet life cycle:
 - Launching a chainlet
 - Paying for a chainlet
 
@@ -17,7 +18,7 @@ When a chainlet is launched, the transaction is committed on SPC and all the val
 We are DEPRECATING SPC. In the near future SSC will be responsible for all the state, security and operations and we will achieve shared security. Although, in the phase 1 of Pegasus, validators are required to run SPC together with the already running SSC. The latter, for now, is not part of this document, as it is not part of the Pegasus stack. No changes are required to how SSC is currently run.
 
 ## Orchestration
-We are relying on Kubernetes as an infrastructure orchestrator. On top of Kubernetes we have an application/chainlet level orchestration: Saga Controller (“controller”). The controller implements a standard control loop reading the state from SPC and changing the resources of the kubernetes cluster. The way a chianlet is deployed is defined by the chainlet template passed to the controller. As of right now, this template has a deployment, a pvc and a service. There are three typical use cases for the controller:
+We are relying on Kubernetes as an infrastructure orchestrator. On top of Kubernetes we have an application/chainlet level orchestration: Saga Controller (“controller”). The controller implements a standard control loop reading the state from SPC and changing the resources of the kubernetes cluster. The way a chainlet is deployed is defined by the chainlet template passed to the controller. As of right now, this template has a deployment, a pvc and a service. There are three typical use cases for the controller:
 - A new chainlet is created in SPC => The controller deploys the chainlet in the k8s cluster
 - A chainlet runs out of upsaga tokens => The controller deallocated the resources in the chainlet namespace
 - A chainlet deployment is deleted/corrupted => The controller restores it based on the template if the chainlet is still online
@@ -38,7 +39,7 @@ SAGA SPECIFIC
 Once SPC is in sync, the controller will start spinning up the chainlet resources and namespaces and make sure they are consistent at any time with the latest state of SPC.
 
 ## Networking
-The nginx ingress controller is publicly exposed via AWS LoadBalancer(s). Ingress Nginx is configured to handle TCP and UDP traffic for the chainlets (see Exposing TCP and UDP services). Given an AWS limit of targets per LB, the controller will have to allocate multiple LBs. Currently, each LB will handle 25 chainlets. So the first 25 chainlets will be associated with the LoadBalancer service “ingress-nginx-controller-p2p-0”, from port 1025 to 1049. The following 25 chainlets will be handled by “ingress-nginx-controller-p2p-1” from port 1025 to 1049 and so forth. Chainlets are aware of the public LB address and port associated with them and gossip that to other nodes in order to be reachable. SPC is exposed directly via LoadBalancer service (“spc” in the “sagasrv-spc” namespace). We are only exposing the p2p port publicly (26656). SPC services like RPC are only exposed locally via ClusterIP service (“spc-internal”).
+The nginx ingress controller is publicly exposed via AWS LoadBalancer(s). Ingress Nginx is configured to handle TCP and UDP traffic for the chainlets (see [Exposing TCP and UDP services](https://kubernetes.github.io/ingress-nginx/user-guide/exposing-tcp-udp-services/)). Given an AWS limit of targets per LB, the controller will have to allocate multiple LBs. Currently, each LB will handle 25 chainlets. So the first 25 chainlets will be associated with the LoadBalancer service “ingress-nginx-controller-p2p-0”, from port 1025 to 1049. The following 25 chainlets will be handled by “ingress-nginx-controller-p2p-1” from port 1025 to 1049 and so forth. Chainlets are aware of the public LB address and port associated with them and gossip that to other nodes in order to be reachable. SPC is exposed directly via LoadBalancer service (“spc” in the “sagasrv-spc” namespace). We are only exposing the p2p port publicly (26656). SPC services like RPC are only exposed locally via ClusterIP service (“spc-internal”).
 
 ## AWS Dependencies
 Our end goal is to have the stack totally cloud agnostic and easy to run on premise to increase decentralization. Although, for now, there are a few dependencies on the AWS stack:
@@ -48,7 +49,7 @@ Our end goal is to have the stack totally cloud agnostic and easy to run on prem
 - EBS as storage
 
 ## Metrics
-We are deploying the kube prometheus stack ([github](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)) for monitoring in the `sagasrv-metrics` namesace. With dynamic prometheus targets via annotations, we are scraping chainlet metrics once added. Grafana comes with dashboards provisioned as code to measure the system status both on an infrastructure and chianlet level. For the chainlets we are using the prometheus metrics exposed by the cosmos SDK. In addition it is possible to deploy cosmos exporter for each chainlets ([github](https://github.com/solarlabsteam/cosmos-exporter)).
+We are deploying the kube prometheus stack ([github](https://github.com/prometheus-community/helm-charts/tree/main/charts/kube-prometheus-stack)) for monitoring in the `sagasrv-metrics` namesace. With dynamic prometheus targets via annotations, we are scraping chainlet metrics once added. Grafana comes with dashboards provisioned as code to measure the system status both on an infrastructure and chainlet level. For the chainlets we are using the prometheus metrics exposed by the cosmos SDK. In addition it is possible to deploy cosmos exporter for each chainlets ([github](https://github.com/solarlabsteam/cosmos-exporter)).
 
 ## Alerting
 Alerting is handled by the Alertmanager with CRDs (PrometheusRule). The kube prometheus stack comes with an extensive set of alerts tailored to Kubernetes clusters. On top of that, we are also deploying some application level alerts (e.g.: missed blocks, chainlet not producing blocks, etc). We are running separately a blackbox monitor to evaluate the chainlets status independently from the single validator clusters.
@@ -57,7 +58,7 @@ Alerting is handled by the Alertmanager with CRDs (PrometheusRule). The kube pro
 This is what happens in several scenarios.
 
 A chainlet is created:
-1. A user submits a chianlet creation transaction
+1. A user submits a chainlet creation transaction
 1. The controller reads from the local SPC node the data of the new chainlets
 1. Since the deployment is not present in the cluster, the controller deploys a chainlet deployment with the data read from SPC (e.g.: genesis params, chain id, etc)
 1. If there is not an available load balancer slot it spins up a new LoadBalancer service
