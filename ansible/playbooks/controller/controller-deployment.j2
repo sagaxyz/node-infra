@@ -40,8 +40,6 @@ spec:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9000"
     spec:
-      imagePullSecrets:
-        - name: regcred
       containers:
         - image: {{container_image}}
           name: {{app.name}}

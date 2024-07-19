@@ -17,12 +17,6 @@
         dest: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-ns.yml
         mode: '0644'
 
-    - name: Generate SPC Secret spec
-      ansible.builtin.template:
-        src: secret.j2
-        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-secret.yml
-        mode: '0644'
-
     - name: Generate SPC Service spec
       ansible.builtin.template:
         src: spc-service.j2

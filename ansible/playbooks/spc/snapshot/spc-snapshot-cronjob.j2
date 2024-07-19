@@ -13,8 +13,6 @@ spec:
     spec:
       template:
         spec:
-          imagePullSecrets:
-            - name: regcred
           serviceAccountName: {{ app.name }}-sa
           containers:
             - image: {{ container_image }}

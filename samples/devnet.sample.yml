@@ -17,16 +17,6 @@ eks_clusters:
     # Validator mode
     validator_provider: 1
 
-    # Docker access
-    secrets:
-      - name: regcred
-        type: docker-registry
-        data:
-          hostname: docker.io
-          username: sagaxyz
-          password: "{{ vault_docker_password }}"
-          email: info@saga.xyz
-
     # === Editable Variables ===
     # Versions
     versions:
@@ -77,7 +67,6 @@ eks_clusters:
       # Secrets
       validator_mnemonic: "" # CHANGE IT to the 24 words validator mnemonic (really sensitive)
       spc_node_key: "" # CHANGE IT with the node key used for the gentx in base64 (cat node_key.json | base64)
-      vault_docker_password: "" # CHANGE IT to the password provided (sensitive)
       vault_grafana_admin_password: "" # CHANGE IT to a generated password (sensitive)
       alertmanager:
         cluster_alerts_slack_url: "" # CHANGE IT to the webhook url (sensitive). Optionally it can be removed
