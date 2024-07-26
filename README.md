@@ -46,7 +46,6 @@ Secrets should be provided as variables. They can live in a single inventory fil
 
 - `validator_mnemonic`:  your validator 24 words mnemonic.
 - `spc_node_key`: base64 encoded `node_key.json` you used to sign the gentx (`cat ~/.spc/config/node_key.json | base64 | pbcopy`)
-- `vault_docker_password`: this will be shared with you to access the private docker repo
 - `vault_grafana_admin_password`: web ui grafana password to check metrics. By default, we are not exposing grafana, which can be reached by port-forwarding. As an alternative, you can set `publicly_expose_grafana: true`.
 - [optional] `alertmanager.cluster_alerts_slack_url`: slack webhook url. It's optional. If set, AlertManager will post alerts to the channel.
 

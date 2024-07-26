@@ -31,18 +31,6 @@
         src: "{{ prometheus_operator_dir }}/setup/0namespace-namespace.yaml"
       when: metrics_deployment_enabled
 
-    - name: Apply SPC Secret spec
-      kubernetes.core.k8s:
-        kubeconfig: "{{ k8s_kubeconfig }}"
-        state: present
-        src: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-secret.yml
-
-    - name: Apply Controller Secret spec
-      kubernetes.core.k8s:
-        kubeconfig: "{{ k8s_kubeconfig }}"
-        state: present
-        src: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-secret.yml
-
     - name: Apply Controller configmap spec
       kubernetes.core.k8s:
         kubeconfig: "{{ k8s_kubeconfig }}"

@@ -166,18 +166,6 @@
         state: absent
         src: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-ns.yml
 
-    - name: Delete SPC Secret spec
-      kubernetes.core.k8s:
-        kubeconfig: "{{ k8s_kubeconfig }}"
-        state: absent
-        src: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-secret.yml
-
-    - name: Delete Controller Secret spec
-      kubernetes.core.k8s:
-        kubeconfig: "{{ k8s_kubeconfig }}"
-        state: absent
-        src: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-secret.yml
-
     - name: Delete fluentd Deployment
       kubernetes.core.k8s:
         kubeconfig: "{{ k8s_kubeconfig }}"

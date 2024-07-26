@@ -20,12 +20,6 @@
         dest: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-ns.yml
         mode: '0644'
 
-    - name: Generate Controller Secret spec
-      ansible.builtin.template:
-        src: secret.j2
-        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-secret.yml
-        mode: '0644'
-
     - name: Generate Controller Deployment spec
       ansible.builtin.template:
         src: controller-deployment.j2
