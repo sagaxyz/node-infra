@@ -20,8 +20,8 @@ We are DEPRECATING SPC. In the near future SSC will be responsible for all the s
 ## Orchestration
 We are relying on Kubernetes as an infrastructure orchestrator. On top of Kubernetes we have an application/chainlet level orchestration: Saga Controller (“controller”). The controller implements a standard control loop reading the state from SPC and changing the resources of the kubernetes cluster. The way a chainlet is deployed is defined by the chainlet template passed to the controller. As of right now, this template has a deployment, a pvc and a service. There are three typical use cases for the controller:
 - A new chainlet is created in SPC => The controller deploys the chainlet in the k8s cluster
-- A chainlet runs out of upsaga tokens => The controller deallocated the resources in the chainlet namespace
-- A chainlet deployment is deleted/corrupted => The controller restores it based on the template if the chainlet is still online
+- A chainlet runs out of upsaga tokens => The controller deallocates the resources in the chainlet namespace
+- A chainlet deployment is deleted/downscaled => The controller restores it based on the template if the chainlet is still online
 
 ## Implementation
 We are running an EKS cluster on AWS (managed Kubernetes). When started those are the main applications running.
@@ -63,12 +63,12 @@ A chainlet is created:
 1. Since the deployment is not present in the cluster, the controller deploys a chainlet deployment with the data read from SPC (e.g.: genesis params, chain id, etc)
 1. If there is not an available load balancer slot it spins up a new LoadBalancer service
 1. It adds a new sequential TCP port to the most recent LB and maps it to the chainlet p2p ClusterIP service.
-1. The chainlet application starts and coordinates a genesis with the other validators, advertising the LB address and port as well as a signed gentx file
+1. The chainlet application starts and coordinates a genesis with the other validators, advertising the LB address on chain
 1. Once the consensus is reached the chainlet starts producing blocks
 
 A chainlet runs out of funds:
 1. The controller infer the event reading from SPC
-1. If the deployment is still up and running, it deletes it along with the services and service mapping associated with it
+1. If the deployment is still up and running, it downscales it to 0 along with the services and service mapping associated with it
 
 A chainlet is restarted:
 1. The resources destroyed in the previous paragraph get reinstated
