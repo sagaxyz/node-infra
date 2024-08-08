@@ -1,0 +1,22 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  tasks:
+
+    - name: Delete S3 policy for chainlet role
+      amazon.aws.iam_policy:
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        iam_type: role
+        iam_name: "{{ eks_cluster_name }}-chainlet"
+        policy_name: "{{ eks_cluster_name }}_chainlet_role_policy"
+        state: absent
+      ignore_errors: true
+
+    - name: Delete IAM role for chainlets
+      amazon.aws.iam_role:
+        name: "{{ eks_cluster_name }}-chainlet"
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        state: absent

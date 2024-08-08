@@ -13,7 +13,6 @@ spec:
     spec:
       template:
         spec:
-          serviceAccountName: {{ app.name }}-sa
           containers:
             - image: {{ container_image }}
               name: {{ app.name }}
@@ -43,6 +42,8 @@ spec:
                 value: "{{ spc_external_address_host }}"
               - name: AWS_DEFAULT_REGION
                 value: {{ aws_region }}
+              - name: S3BUCKET
+                value: {{ s3bucket }}
               - name: QUORUM_COUNT
                 value: "{{ quorum_count }}"
               - name: VALIDATOR_ADDRESSES

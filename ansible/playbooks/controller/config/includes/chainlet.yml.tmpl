@@ -29,6 +29,14 @@ spec:
       targetPort: 8546
 ---
 apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: "{{ .Name }}-sa"
+  namespace: "{{ .Namespace }}"
+  annotations:
+    eks.amazonaws.com/role-arn: "{{ chainlet_role_info.arn }}"
+---
+apiVersion: v1
 kind: PersistentVolumeClaim
 metadata:
   name: "saga-{{ .Name }}-pvc"
@@ -62,8 +70,8 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "26660"
-        saga.xyz/chain-version: "{{ .ChainVersion }}"
-        saga.xyz/chain-source: "{{ .ChainSource }}"
+        saga.xyz/stack-version: "{{ .ChainletStackVersion }}"
+        saga.xyz/stack-name: "{{ .ChainletStackName }}"
     spec:
       nodeSelector:
         kubernetes.io/os: linux
@@ -76,8 +84,9 @@ spec:
           hostPath:
             path: /var/log/saga
             type: DirectoryOrCreate
+      serviceAccountName: "{{ .Name }}-sa"
       containers:
-        - image: "{{ .ChainImage }}"
+        - image: "{{ .ChainletImage }}"
           name: "{{ .Name }}"
           imagePullPolicy: Always
           env:
@@ -86,38 +95,25 @@ spec:
               fieldRef:
                 apiVersion: v1
                 fieldPath: metadata.uid
-          - name: CHAIN_ID
+          - name: CHAINID
             value: "{{ .ChainId }}"
           - name: LOGLEVEL
-            value: "trace"
-          - name: MAINTAINERS
-            value: "{{ .ChainMaintainers }}"
-          - name: DENOM
-            value: "{{ .CoinDenom }}"
-          - name: GENESIS_CCV
-            value: "{{ .ChainGenesisCcv }}"
-          - name: GENESIS_TIME
-            value: "{{ .ChainGenesisTime }}"
-          - name: PEERS
-            value: "{{ .ChainPeers }}"
-          - name: NODE_KEY
-            value: "{{ .NodeKey }}"
-          - name: VALIDATOR_KEY
-            value: "{{ .ValidatorKey }}"
-{% if validator_provider == 1 %}
-          - name: OPTS
-            value: "--pruning %%% pruning_strategy | default('default') %%% --json-rpc.gas-cap 50000000 --api.enable=true"
-{% else %}
-          - name: OPTS
-            value: "--pruning %%% pruning_strategy | default('default') %%% --json-rpc.gas-cap 50000000 --json-rpc.api eth,txpool,personal,net,debug,web3 --api.enabled-unsafe-cors --api.enable --grpc.address 0.0.0.0:9090 --json-rpc.address 0.0.0.0:8545 --json-rpc.ws-address 0.0.0.0:8546"
-{% endif %}
+            value: "info"
+          - name: KEYNAME
+            value: "{{ .Name }}-operator-key"
           - name: EXTERNAL_ADDRESS
-            value: "{{ .ChainExternalAddress }}"
-{{ range $key, $value := .ChainEnvVars }}
+            value: "{{ .ChainletExternalAddress }}"
+          - name: MAINTAINERS
+            value: "{{ .ChainletMaintainers }}"
+          - name: STAKE_OWNER_ADDRESS
+            value: "%%% stake_owner_address %%%"
+          - name: KEYPASSWD
+            value: "%%% keychain_password %%%"
+{{ range $key, $value := .ChainletEnvVars }}
           - name: {{ $key | ToUpper }}
             value: "{{ $value }}"
 {{ end }}
-{{ range $key, $value := .ChainParams }}
+{{ range $key, $value := .ChainletSpcVars }}
           - name: SPCPARAM_{{ $key | ToUpper }}
             value: "{{ $value }}"
 {{ end }}
@@ -131,11 +127,11 @@ spec:
             - containerPort: 26660
           resources:
             requests:
-              memory: "3Gi"
-              cpu: "1.5"
+              memory: "1Gi"
+              cpu: "0.5"
             limits:
-              memory: "5Gi"
-              cpu: "2.5"
+              memory: "4Gi"
+              cpu: "2"
           volumeMounts:
             - name: "saga-{{ .Name }}-persistent-storage"
               mountPath: "/root/.sagaosd"
@@ -143,3 +139,35 @@ spec:
             - name: "fluentd-logs"
               mountPath: "/var/log/saga"
               subPathExpr: $(UID)
+{% if relayer_enabled %}
+        - image: "{{ .RelayerImage }}"
+          resources:
+            requests:
+              memory: "1Gi"
+            limits:
+              memory: "2Gi"
+          imagePullPolicy: Always
+          name: relayer
+          command: ["bash"]
+          args:
+            - start-rly.sh
+          env:
+            - name: CHAINLET_RPC_ADDRESS
+              value: "http://localhost:26657"
+            - name: CHAINLET_CHAIN_ID
+              value: "{{ .ChainId }}"
+            - name: CHAINLET_DENOM
+              value: {{ .CoinDenom }}
+            - name: RELAYER_CHAINLET_MNEMONIC
+              value: {{ .RelayerChainletMnemonic }}
+            - name: SPC_CHAIN_ID
+              value: {{ .RelayerSpcChainId }}
+            - name: SPC_RPC_EXTERNAL_ADDRESS
+              value: {{ .RelayerSpcRpcAddress }}
+            - name: SPC_DENOM
+              value: {{ .RelayerSpcDenom }}
+            - name: RELAYER_SPC_MNEMONIC
+              value: {{ .RelayerSpcMnemonic }}
+          ports:
+            - containerPort: 5183
+{% endif %}

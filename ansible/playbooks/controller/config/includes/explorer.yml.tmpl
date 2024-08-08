@@ -11,10 +11,10 @@ data:
   ETHEREUM_JSONRPC_HTTP_URL: "http://{{ .Name }}:8545"
   ETHEREUM_JSONRPC_GETH_TRACE_BY_BLOCK: "false"
   ETHEREUM_JSONRPC_WS_URL: "ws://{{ .Name }}:8546"
-  DATABASE_URL: "postgresql://%%% explorer_db.user %%%:%%% explorer_db.password %%%@blockscout-db.blockscout.svc.cluster.local:5432/blockscout-{{ .ChainId }}"
-  DATABASE_READ_ONLY_API_URL: "postgresql://%%% explorer_db.user %%%:%%% explorer_db.password %%%@blockscout-db-ro.blockscout.svc.cluster.local:5432/blockscout-{{ .ChainId }}"
+  DATABASE_URL: "postgresql://{{ .ExplorerDbUser }}:{{ .ExplorerDbPwd }}@blockscout-db.blockscout.svc.cluster.local:5432/blockscout-{{ .ChainId }}"
+  DATABASE_READ_ONLY_API_URL: "postgresql://{{ .ExplorerDbUser }}:{{ .ExplorerDbPwd }}@blockscout-db-ro.blockscout.svc.cluster.local:5432/blockscout-{{ .ChainId }}"
   NETWORK: ""
-  SUBNETWORK: "{{ .ChainName }}"
+  SUBNETWORK: "{{ .ChainletName }}"
   LOGO: /images/saga_logo.svg
   LOGO_FOOTER: /images/saga_logo.svg
   ETHEREUM_JSONRPC_TRANSPORT: http
@@ -22,7 +22,7 @@ data:
   IPC_PATH: ""
   NETWORK_PATH: /
   BLOCKSCOUT_PROTOCOL: ""
-  BLOCKSCOUT_VERSION: "6.0.0"
+  BLOCKSCOUT_VERSION: "{{ .ExplorerVersion }}"
   PORT: "4000"
   COIN_NAME: {{ .CoinDenom }}
   EMISSION_FORMAT: DEFAULT
@@ -90,7 +90,7 @@ data:
   MAX_STRING_LENGTH_WITHOUT_TRIMMING: "2040"
   RE_CAPTCHA_SECRET_KEY: ""
   RE_CAPTCHA_CLIENT_KEY: ""
-  JSON_RPC: "{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% rpc_url_suffixes[0] %%%"
+  JSON_RPC: "https://{{ .ChainletJsonRpc }}"
   API_RATE_LIMIT: "50"
   API_RATE_LIMIT_BY_KEY: "50"
   API_RATE_LIMIT_BY_WHITELISTED_IP: "50"
@@ -106,7 +106,7 @@ data:
   RE_CAPTCHA_DISABLED: "true"
   HIDE_BLOCK_MINER: "true"
   INDEXER_HIDE_INDEXING_PROGRESS_ALERT: "false"
-  SECRET_KEY_BASE: "%%% explorer_secret_key_base %%%"
+  SECRET_KEY_BASE: "{{ .ExplorerSecretKeyBase }}"
   DISABLE_WEBAPP: "true"
 ---
 apiVersion: v1
@@ -115,19 +115,19 @@ metadata:
   name: blockscout-frontend-configmap
   namespace: "{{ .Namespace }}"
 data:
-  NEXT_PUBLIC_APP_HOST: "{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% explorer_url_suffixes[0] %%%"
+  NEXT_PUBLIC_APP_HOST: "{{ .ChainletName }}-{{ .ChainIdNumber }}-1.%%% explorer_url_suffixes[0] %%%"
   NEXT_PUBLIC_APP_PORT: "443"
   NEXT_PUBLIC_AD_BANNER_PROVIDER: "none"
   NEXT_PUBLIC_AD_TEXT_PROVIDER: "none"
-  NEXT_PUBLIC_NETWORK_NAME: "{{ .ChainName }}"
-  NEXT_PUBLIC_NETWORK_SHORT_NAME: "{{ .ChainName }}"
+  NEXT_PUBLIC_NETWORK_NAME: "{{ .ChainletName }}"
+  NEXT_PUBLIC_NETWORK_SHORT_NAME: "{{ .ChainletName }}"
   NEXT_PUBLIC_NETWORK_ID: "{{ .ChainIdNumber }}"
-  NEXT_PUBLIC_NETWORK_RPC_URL: "https://{{ .ChainName }}-{{ .ChainIdNumber }}-1.jsonrpc.%%% rpc_url_suffixes[0] %%%"
+  NEXT_PUBLIC_NETWORK_RPC_URL: "https://{{ .ChainletName }}-{{ .ChainIdNumber }}-1.jsonrpc.%%% rpc_url_suffixes[0] %%%"
   NEXT_PUBLIC_NETWORK_CURRENCY_NAME: "{{ .CoinDenom }}"
   NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: "{{ .CoinDenom }}"
   NEXT_PUBLIC_NETWORK_VERIFICATION_TYPE: "validation"
-  NEXT_PUBLIC_IS_TESTNET: "%%% is_testnet | default(true) | string | lower %%%"
-  NEXT_PUBLIC_API_HOST: "api-{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% explorer_url_suffixes[0] %%%"
+  NEXT_PUBLIC_IS_TESTNET: "{{ .ExplorerIsTestnet }}"
+  NEXT_PUBLIC_API_HOST: "api-{{ .ChainletName }}-{{ .ChainIdNumber }}-1.%%% explorer_url_suffixes[0] %%%"
   NEXT_PUBLIC_NETWORK_LOGO_DARK: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_network_logo_dark.svg"
   NEXT_PUBLIC_NETWORK_LOGO: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_network_logo.svg"
   NEXT_PUBLIC_NETWORK_ICON: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_network_icon.svg"
@@ -140,10 +140,10 @@ data:
   NEXT_PUBLIC_FOOTER_LINKS: "https://saga-public-assets.s3.amazonaws.com/blockscout/configs/footer_links.json"
   NEXT_PUBLIC_HIDE_INDEXING_ALERT_BLOCKS: "true"
   NEXT_PUBLIC_HIDE_INDEXING_ALERT_INT_TXS: "true"
-  NEXT_PUBLIC_AD_TEXT_PROVIDER: "none" 
-  NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID: "%%% wallet_id_connect_client_id | default('') %%%"
+  NEXT_PUBLIC_AD_TEXT_PROVIDER: "none"
+  NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID: "{{ .ExplorerWalletIdClientId }}"
   NEXT_PUBLIC_HOMEPAGE_CHARTS: "['daily_txs']"
-  NEXT_PUBLIC_STATS_API_HOST: "https://stats-{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% explorer_url_suffixes[0] %%%"
+  NEXT_PUBLIC_STATS_API_HOST: "https://stats-{{ .ChainletName }}-{{ .ChainIdNumber }}-1.%%% explorer_url_suffixes[0] %%%"
 ---
 apiVersion: v1
 kind: ConfigMap
@@ -157,8 +157,8 @@ data:
   STATS__DEFAULT_SCHEDULE: "0 0 1 * * * *"
   STATS__TRACING__ENABLED: "true"
   STATS__TRACING__FORMAT: "default"
-  STATS__DB_URL: "postgresql://%%% explorer_db.user %%%:%%% explorer_db.password %%%@blockscout-db-stats.blockscout.svc.cluster.local:5432/stats-{{ .ChainId }}"
-  STATS__BLOCKSCOUT_DB_URL: "postgresql://%%% explorer_db.user %%%:%%% explorer_db.password %%%@blockscout-db-ro.blockscout.svc.cluster.local:5432/blockscout-{{ .ChainId }}"
+  STATS__DB_URL: "postgresql://{{ .ExplorerDbUser }}:{{ .ExplorerDbPwd }}@blockscout-db-stats.blockscout.svc.cluster.local:5432/stats-{{ .ChainId }}"
+  STATS__BLOCKSCOUT_DB_URL: "postgresql://{{ .ExplorerDbUser }}:{{ .ExplorerDbPwd }}@blockscout-db-ro.blockscout.svc.cluster.local:5432/blockscout-{{ .ChainId }}"
   STATS__CREATE_DATABASE: "true"
   STATS__RUN_MIGRATIONS: "true"
   STATS__METRICS__ENABLED: "false"
@@ -221,7 +221,7 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in explorer_url_suffixes %}
-    - host: "{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% url %%%"
+    - host: "{{ .ChainletName }}-{{ .ChainIdNumber }}-1.%%% url %%%"
       http:
         paths:
           - path: /
@@ -245,7 +245,7 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in explorer_url_suffixes %}
-    - host: "stats-{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% url %%%"
+    - host: "stats-{{ .ChainletName }}-{{ .ChainIdNumber }}-1.%%% url %%%"
       http:
         paths:
           - path: /
@@ -268,7 +268,7 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in explorer_url_suffixes %}
-    - host: "api-{{ .ChainName }}-{{ .ChainIdNumber }}-1.%%% url %%%"
+    - host: "api-{{ .ChainletName }}-{{ .ChainIdNumber }}-1.%%% url %%%"
       http:
         paths:
           - path: /
@@ -300,13 +300,15 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "4000"
+        saga.xyz/stack-version: "{{ .ChainletStackVersion }}"
+        saga.xyz/stack-name: "{{ .ChainletStackName }}"
     spec:
       nodeSelector:
         kubernetes.io/os: linux
       restartPolicy: Always
       containers:
         - name: blockscout-backend
-          image: "blockscout/blockscout:6.0.0"
+          image: "{{ .ExplorerImage }}"
           resources:
             requests:
               cpu: 100m
@@ -352,13 +354,15 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "4000"
+        saga.xyz/stack-version: "{{ .ChainletStackVersion }}"
+        saga.xyz/stack-name: "{{ .ChainletStackName }}"
     spec:
       nodeSelector:
         kubernetes.io/os: linux
       restartPolicy: Always
       containers:
         - name: blockscout-indexer
-          image: "blockscout/blockscout:6.0.0"
+          image: "{{ .ExplorerImage }}"
           resources:
             requests:
               cpu: 500m
@@ -406,6 +410,8 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9090"
+        saga.xyz/stack-version: "{{ .ChainletStackVersion }}"
+        saga.xyz/stack-name: "{{ .ChainletStackName }}"
     spec:
       nodeSelector:
         kubernetes.io/os: linux
@@ -468,6 +474,9 @@ spec:
       labels:
         app: "blockscout-frontend"
         chainId: "{{ .ChainId }}"
+      annotations:
+        saga.xyz/stack-version: "{{ .ChainletStackVersion }}"
+        saga.xyz/stack-name: "{{ .ChainletStackName }}"
     spec:
       nodeSelector:
         kubernetes.io/os: linux

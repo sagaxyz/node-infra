@@ -19,8 +19,8 @@ spec:
       annotations:
         prometheus.io/scrape: "true"
         prometheus.io/port: "9300"
-        saga.xyz/chain-version: "{{ .ChainVersion }}"
-        saga.xyz/chain-source: "{{ .ChainSource }}"
+        saga.xyz/stack-version: "{{ .ChainletStackVersion }}"
+        saga.xyz/stack-name: "{{ .ChainletStackName }}"
     spec:
       nodeSelector:
         kubernetes.io/os: linux
@@ -39,8 +39,8 @@ spec:
           command:
             - ./cosmos-exporter
           args:
-            - --tendermint-rpc=tcp://node:26657
-            - --node=node:9090
+            - --tendermint-rpc=tcp://chainlet:26657
+            - --node=chainlet:9090
             - --denom="{{ .CoinDenom }}"
             - --denom-coefficient=1
             - --chain-id="{{ .ChainId }}"

@@ -20,3 +20,6 @@
 
 - name: Delete stack using k8's specs
   ansible.builtin.import_playbook: playbooks/k8s/delete.yml
+
+- name: Delete roles
+  ansible.builtin.import_playbook: playbooks/roles/delete.yml

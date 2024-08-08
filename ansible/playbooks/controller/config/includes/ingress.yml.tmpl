@@ -10,14 +10,14 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in rpc_url_suffixes %}
-    - host: "{{ .ChainName }}-{{ .ChainIdNumber }}-1.jsonrpc.%%% url %%%"
+    - host: "{{ .ChainletName }}-{{ .ChainIdNumber }}-1.jsonrpc.%%% url %%%"
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: node
+                name: chainlet
                 port:
                   number: 8545
 {% endfor %}
@@ -34,14 +34,14 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in rpc_url_suffixes %}
-    - host: "{{ .ChainName }}-{{ .ChainIdNumber }}-1.ws.%%% url %%%"
+    - host: "{{ .ChainletName }}-{{ .ChainIdNumber }}-1.ws.%%% url %%%"
       http:
         paths:
           - path: /
             pathType: Prefix
             backend:
               service:
-                name: node
+                name: chainlet
                 port:
                   number: 8546
 {% endfor %}

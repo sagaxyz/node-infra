@@ -14,5 +14,5 @@ conf:
   KEYRING: file
   KEYALGO: secp256k1
   LOGLEVEL: info
-  TRACE: ""
+  TRACE: "--trace"
   SLEEPTIME: 5

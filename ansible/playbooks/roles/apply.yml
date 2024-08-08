@@ -1,0 +1,26 @@
+---
+- hosts: eks_clusters
+  gather_facts: false
+
+  tasks:
+
+    - name: Create IAM role for chainlets
+      amazon.aws.iam_role:
+        name: "{{ eks_cluster_name }}-chainlet"
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        assume_role_policy_document: "{{ lookup('template', 'policies/chainlet-assume-role-policy.json.j2') }}"
+        state: present
+      register: chainlet_role_info
+
+    - name: Create S3 policy for chainlet role
+      amazon.aws.iam_policy:
+        aws_profile: "{{ aws_profile }}"
+        aws_region: "{{ aws_region }}"
+        iam_type: role
+        iam_name: "{{ chainlet_role_info.role_name }}"
+        policy_name: "{{ eks_cluster_name }}_chainlet_role_policy"
+        state: present
+        policy_json: "{{ lookup('template', 'policies/chainlet-role-policy.json.j2') }}"
+      vars:
+        bucket_name: "{{ s3bucket | regex_replace('^s3://([^/]+)/.*', '\\1') }}"

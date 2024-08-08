@@ -28,6 +28,7 @@
       set_fact:
         explorer_url_suffixes: "{{ [explorer_generic_url_suffix, explorer_url_suffix] if explorer_generic_url_suffix is defined else [explorer_url_suffix] }}"
         rpc_url_suffixes: "{{ [rpc_generic_url_suffix, url_suffix] if rpc_generic_url_suffix is defined else [url_suffix] }}"
+      when: rpc_enabled or explorer_sagaevm
 
     - name: Generate chainlet templates
       ansible.builtin.template:

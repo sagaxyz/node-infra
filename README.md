@@ -2,51 +2,31 @@
 
 ## Prerequisites
 - An AWS account.
-- An AWS IAM User with privileges: `ec2:*`, `eks:*`, `iam:*`, `cloudformation:*`, `acm:*`, `autoscaling:Describe*`, `route53:*`, `elasticloadbalancing:DescribeTargetGroups`. All can be restricted to the region the cluster is delivered. The route53 permission is only required on the domain used to expose the SPC validator.
+- An AWS IAM User with privileges: `ec2:*`, `eks:*`, `iam:*`, `cloudformation:*`, `acm:*`, `autoscaling:Describe*`, `elasticloadbalancing:DescribeTargetGroups`. All can be restricted to the region the cluster is delivered.
 - `aws-cli` installed on the machine that is provisioning the cluster
 - The IAM user credentials should be stored locally in `~/.aws/credentials`
-- A public subdomain delegated to route53. This will be used to expose SPC to other validators. E.g.: [How to delegate cloudflare subdomain](link)
 - Ansible installed
 - pip3 and python3 installed
 
 **NOTE:** The user is only used for the provisioning. It is possible to deactivate the user after deploying the cluster for the first time, unless infra changes are required. Follow [this guide](link) to create a specific user/role to access the cluster.
 
-## Gentx
-We are coordinating the gentx ceremony offline. You will receive an unsigned genesis file and will need to generate a gentx and share it with us. Execute these commands in a safe environment and make sure to save the credentials that you will use later for your validator (mnemonic and `node_key.json`).
-
-```bash
-scpd add key <validator_key_name>
-```
-Make sure you are saving the generated mnemonic and `~/.spc/config/node_key.json`. You can alternatively use an existing mnemonic (--recover) or a ledger (--ledger). The problem with the latter is that you will have to know the mnemonic and provide it to the cluster. We are working on a safer solution to avoid this.
-
-Share the address created with us (spcd keys show <validator_key_name>). Once collected all the addresses we will share the unsigned genesis file with you.
-
-Once we share the genesis file with you. You can generate the gentx.
-```
-spcd init --chain-id=spc-devnet-1 --recover --default-denom upsaga <your_moniker>
-cp <provided_genesis_file> ~/.spc/config/genesis.json
-spcd gentx <validator_key_name> "1500000stake" --chain-id spc-devnet-1 --ip spc.<your_validator_moniker>.spc-devnet-1.<route53_zone>
-```
-**The public address has to be from a subdomain you control on Route53 (see prerequisites #5).** Make sure you use the same moniker and route53_zone in the inventory below.
-
 ## Inventory file
-Copy the devnet inventory sample to your repo (`cp sample/devnet.sample.yml <your_inventory_file.yml>`). Now, you can edit the inventory file, there are 10 variables marked with “CHANGE IT”. See the following two sections for specific instructions on each one of them.
+Copy the testnet|mainnet inventory sample to your repo (`cp sample/<testnet|mainnet>.sample.yml <your_inventory_file.yml>`). Now, you can edit the inventory file, there are 8 variables marked with “CHANGE IT”. See the following two sections for specific instructions on each one of them.
 
 ### Variables
 - `aws_region`: the AWS region where the cluster runs.
 - `aws_profile`: the profile name of the deployer IAM User with the required privileges. This is used to provision the cluster. It has to be the same saved in `~/.aws/credentials`.
 - `moniker`: your validator moniker.
-- `route53_zone`: the (sub)domain controlled by route53. The deploy playbook will create the record to expose spc to other validators (`spc.{{ route53_zone }}`).
 
-The default inventory hostname is `eks-cluster-name`. This is going to be the name of your EKS cluster. You can override it with your desired EKS cluster name. It can be your moniker if you don't have an already running cluster on AWS, in the same region.
+The default inventory hostname is `eks-cluster-name`. This is going to be the name of your EKS cluster. You can override it with your desired EKS cluster name. It can be your moniker if you don't have an already running cluster on AWS, in the same region. NOTE: this is a yaml key.
 
 ### Secrets
 
 Secrets should be provided as variables. They can live in a single inventory file with the other variables (in case use ansible-vault encryption at least). To increase security, they can be in a separate inventory file offline. Moving soon from embedded signatures to remote key management and public docker registry will make this part less critical.
 
 - `validator_mnemonic`:  your validator 24 words mnemonic.
-- `spc_node_key`: base64 encoded `node_key.json` you used to sign the gentx (`cat ~/.spc/config/node_key.json | base64 | pbcopy`)
 - `vault_grafana_admin_password`: web ui grafana password to check metrics. By default, we are not exposing grafana, which can be reached by port-forwarding. As an alternative, you can set `publicly_expose_grafana: true`.
+- `keychain_password`: password used by the chainlet validator to locally encrypt the keys
 - [optional] `alertmanager.cluster_alerts_slack_url`: slack webhook url. It's optional. If set, AlertManager will post alerts to the channel.
 
 ### Additional services

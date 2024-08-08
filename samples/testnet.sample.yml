@@ -6,13 +6,22 @@ eks_clusters:
     ansible_connection: "local"
     ansible_host: "127.0.0.1"
     aws_environment: true
-    ansible_playbook_python: python3
 
     # SPC and chainlets
-    chain_id: "spc-devnet-1"
+    chain_id: "spc-testnet-2"
+    keyname: "{{ inventory_hostname }}-key"
+    quorum_count: 4
+    validator_addresses: saga1atjuvcf4aq3upr5eacacpv08lkp39v8208gw6z saga12uch6j240eqv5zgpr4f4zyy4c3gf923ky9qyru saga1hvm67hnpmfc5pfpeqqmung4kjqcavzatjegxu9 saga1q3u9efga08n5drr9takxe0q2qnjvmqymguna4u
+    dev_addresses_cosmos: ""
+    dev_addresses_eth: ""
+    stake_owner_address: saga162k9aqdgagr6qwjugqaktfycaechhnpzgl3rgs
+    foundation_wallet_address: saga1u2a8ktctqhpx655ysw7ru27t6hqt9wlq4fn5ca
     is_testnet: true
-    spc_genesis: "https://raw.githubusercontent.com/sagaxyz/public-configs/main/spc-devnet-1/genesis.json"
-    spc_denom: "upsaga"
+
+    # S3
+    s3root: s3://testnet-prod-v2
+    s3bucket: "{{ s3root}}/spc/gentx"
+    s3bucket_sagaevm: "{{ s3root}}/chainlets/gentx"
 
     # Validator mode
     validator_provider: 1
@@ -21,9 +30,8 @@ eks_clusters:
     # Versions
     versions:
       infrastructure: v1.0.0
-      spc: "1.0.0-alpha.5"
-      controller: "1.0.0-alpha.2"
-      relayer: "0.2.2"
+      spc: "0.2.3-rc"
+      controller: "0.9.0"
 
     # EKS
     eks_kubernetes_version: "1.28"
@@ -31,7 +39,7 @@ eks_clusters:
     autoscale_enabled: true
     k8s_kubeconfig: "~/.kube/{{ inventory_hostname }}"
     eks_nodegroup_name: "{{ inventory_hostname }}-nodegroup"
-    eks_vpc_name: "devnet-vpc"
+    eks_vpc_name: "testnet-vpc"
     eks_nodegroup_cluster_size: 1
     eks_nodegroup_instance_type: m5a.4xlarge
     max_pods_per_node: 100
@@ -53,20 +61,16 @@ eks_clusters:
     # SPC
     spc_additional_args: ""
 
-    # DNS
-    spc_external_address_host: "spc.{{ moniker }}.{{ chain_id }}.{{ route53_zone }}"
-
   hosts:
     # === Validator Specific Variables ===
-    eks-cluster-name: # CHANGE IT to desired EKS cluster name. E.g.: <your_moniker>-spc-devnet:
+    eks-cluster-name: # CHANGE IT to desired EKS cluster name. E.g.: <your_moniker>-spc-testnet:
       aws_region: us-east-1 # CHANGE IT to desired AWS region
       aws_profile: your_aws_profile # CHANGE IT to a profile entry in ~/.aws/credentials with necessary permissions
       moniker: my_validator_moniker # CHANGE IT to your moniker
-      route53_zone: yourdomain.com # CHANGE IT to your domain (make sure you have authority on Route53)
 
       # Secrets
       validator_mnemonic: "" # CHANGE IT to the 24 words validator mnemonic (really sensitive)
-      spc_node_key: "" # CHANGE IT with the node key used for the gentx in base64 (cat node_key.json | base64)
       vault_grafana_admin_password: "" # CHANGE IT to a generated password (sensitive)
+      keychain_password: "" # CHANGE IT password used to locally encrypt the keys
       alertmanager:
         cluster_alerts_slack_url: "" # CHANGE IT to the webhook url (sensitive). Optionally it can be removed

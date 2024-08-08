@@ -17,6 +17,9 @@
 - name: Gather OIDC provider info
   import_playbook: playbooks/oidc/provision.yml
 
+- name: Provision chainlet roles
+  import_playbook: playbooks/roles/apply.yml
+
 - name: Provision blockscout shared infra
   ansible.builtin.import_playbook: playbooks/blockscout/main.yml
   when: explorer_sagaevm

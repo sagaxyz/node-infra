@@ -1,17 +1,13 @@
-loglevel: "debug"
+loglevel: "trace"
 json_log_file: "/var/log/saga/controller.log"
 listen_grpc: ":19090"
 listen_grpc_gateway: ":18090"
 listen_prometheus: ":9000"
 sync_frequency: "5s"
-mnemonic: "{{ validator_mnemonic | default('') }}"
-sources:
-  "spc":
-    grpc_endpoint: "spc-internal.sagasrv-spc.svc.cluster.local:9090"
-    state_request_timeout: "10s"
-    state_reload: "5s"
-    rpc_endpoint: "http://spc-internal.sagasrv-spc.svc.cluster.local:26657"
-    chain_id: "{{ chain_id }}"
+spc:
+  grpc_endpoint: "spc-internal.sagasrv-spc.svc.cluster.local:9090"
+  state_request_timeout: "10s"
+  state_reload: "5s"
 deployment:
   deployer: "kube"
   state_reload: "10s"
@@ -21,20 +17,58 @@ deployment:
   kube:
     in_cluster_config: true
     config_path: "/etc/saga/kube/config"
-    template_paths:
-      "spc": "/etc/saga/controller/kube/chainlet.yml.tmpl"
+    template_path: "/etc/saga/controller/kube/chainlet.yml.tmpl"
     lb_template_path: "/etc/saga/controller/kube/lb.yml.tmpl"
     pod_running_timeout: "300s"
     service_external_ip_timeout: "300s"
-    host_resolution_timeout: "300s"
+    chainlet_host_resolution_timeout: "300s"
     config_map_key_commit_timeout: "300s"
-    node_deployment_name: "node"
-    namespace_prefix: "saga"
+    node_deployment_name: "chainlet"
+    namespace_prefix: "saga-"
     namespace_deletion_timeout: "300s"
     namespace_pod_timeout: "300s"
     qps: 100
     throttling_burst: 200
     lb_port_limit: 25
     deployments: {{ chainlet_deployment_list }}
+    ports:
+      "rpc":
+        number: 26657
+        host_suffix: ""
+      "jsonrpc":
+        number: 8545
+        host_suffix: "jsonrpc.{{ rpc_generic_url_suffix | default(url_suffix | default('')) }}"
+      "ws":
+        number: 8546
+        host_suffix: "ws.{{ rpc_generic_url_suffix | default(url_suffix | default('')) }}"
     env:
+      quorum_count: "{{ quorum_count }}"
+      validator_mnemonic: "{{ validator_mnemonic | default('void') }}"
+      validator_addresses: ""
+      validator_addresses_eth: ""
+      validator_addresses_cosmos: "{{ validator_addresses }}"
+      s3bucket: "{{ s3bucket_sagaevm }}"
+      validator_provider: "{{ validator_provider }}"
       moniker: "{{ moniker }}"
+      dev_addresses_cosmos: "{{ dev_addresses_cosmos }}"
+      dev_addresses_eth: "{{ dev_addresses_eth }}"
+      json_rpc_gas_cap: "50000000"
+      pruning_strategy: "{{ pruning_strategy | default('') }}"
+    explorer:
+      enabled: "{{ explorer_sagaevm }}"
+      host_suffix: "{{ explorer_generic_url_suffix | default(explorer_url_suffix | default('')) }}"
+      image: "blockscout/blockscout:6.0.0"
+      sc_verifier_image: "ghcr.io/blockscout/smart-contract-verifier:latest"
+      db_user: "{{ explorer_db.user | default('blockscout') }}"
+      db_password: "{{ explorer_db.password | default('') }}"
+      secret_key_base: "{{ explorer_secret_key_base | default('') }}"
+      is_testnet: "{{ is_testnet | default(true) | string | lower }}"
+      wallet_id_client_id: "{{ wallet_id_connect_client_id | default('') }}"
+    relayer:
+      enabled: "{{ relayer_enabled }}"
+      image: "sagaxyz/go-relayer:latest"
+      spc_chain_id: ""
+      spc_rpc_external_address: ""
+      spc_denom: "tsaga"
+      spc_mnemonic: ""
+      chainlet_mnemonic: ""
