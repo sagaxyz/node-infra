@@ -31,7 +31,7 @@ eks_clusters:
     versions:
       infrastructure: v1.0.0
       spc: "0.2.3-rc"
-      controller: "0.9.0"
+      controller: "0.9.1"
 
     # EKS
     eks_kubernetes_version: "1.28"

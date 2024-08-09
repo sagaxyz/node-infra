@@ -5,7 +5,7 @@ metadata:
   name: "saga-controller-role"
 rules:
   - apiGroups: ["", "apps", "networking.k8s.io"]
-    resources: ["namespaces", "services", "pods", "deployments", "deployments/scale", "statefulsets", "persistentvolumeclaims", "ingresses", "configmaps"]
+    resources: ["namespaces", "services", "pods", "deployments", "deployments/scale", "statefulsets", "persistentvolumeclaims", "ingresses", "configmaps", "serviceaccounts"]
     verbs: ["get", "list", "update", "watch", "delete", "create"]
 ---
 apiVersion: rbac.authorization.k8s.io/v1

@@ -68,6 +68,7 @@
           NodeGroupName: "{{ eks_nodegroup_name }}"
           NodeGroupDesiredCapacity: "{{ eks_nodegroup_cluster_size }}"
           NodeInstanceType: "{{ eks_nodegroup_instance_type }}"
+          NodeAmiType: "{{ eks_nodegroup_ami_type | default('AL2_x86_64') }}"
           Subnets: "{{ stack_outputs.Subnets }}"
         tags:
           stack: "{{ eks_cluster_name }}-nodegroup"

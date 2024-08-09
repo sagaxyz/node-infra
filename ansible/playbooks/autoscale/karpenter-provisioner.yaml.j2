@@ -21,6 +21,9 @@ spec:
   - key: karpenter.k8s.aws/instance-size
     operator: NotIn
     values: [nano, micro, small, large]
+  - key: kubernetes.io/arch
+    operator: In
+    values: ["amd64", "arm64"]
   
   kubeletConfiguration:
     maxPods: {{ max_pods_per_node }}

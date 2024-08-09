@@ -34,7 +34,7 @@ metadata:
   name: "{{ .Name }}-sa"
   namespace: "{{ .Namespace }}"
   annotations:
-    eks.amazonaws.com/role-arn: "{{ chainlet_role_info.arn }}"
+    eks.amazonaws.com/role-arn: "%%% chainlet_role_info.arn %%%"
 ---
 apiVersion: v1
 kind: PersistentVolumeClaim
