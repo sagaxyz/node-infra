@@ -38,6 +38,29 @@
         definition: "{{ lookup('kubernetes.core.kustomize', dir='' + chainlets_dir_abs ) }}"
       vars:
         chainlets_dir_abs: "{{ chainlets_dir | expanduser }}"
+      register: restart_controller
+
+    - name: Get controller pod info
+      kubernetes.core.k8s_info:
+        kind: Pod
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        namespace: sagasrv-controller
+        label_selectors:
+          - "app = controller"
+      register: controller_pod_info
+      when: restart_controller.changed
+
+    - name: Restart controller pod
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        kind: Pod
+        name: "{{ pod_name }}"
+        namespace: sagasrv-controller
+      vars:
+        pod_name: "{{ controller_pod_info.resources[0].metadata.name }}"
+      when: controller_pod_info.resources[0] is defined
+      when: restart_controller.changed
 
     - name: Apply SPC Service spec
       kubernetes.core.k8s:
