@@ -72,6 +72,20 @@ spec:
             value: "{{ validator_provider }}"
           - name: ADDITIONAL_ARGS
             value: "{{ spc_additional_args }}"
+          - name: KEYPASSWD
+            value: "{{ keychain_password }}"
+{% if voting_period is defined %}
+          - name: VOTING_PERIOD
+            value: {{ voting_period }}
+{% endif %}
+{% if node_rpc_domain is defined %}
+          - name: NODE_RPC
+            value: https://spc.{{ node_rpc_domain }}:443
+{% endif %}
+{% if stake_amount is defined %}
+          - name: STAKE_AMOUNT
+            value: "{{ stake_amount }}"
+{% endif %}
 {% if pruning_strategy is defined %}
           - name: PRUNING_STRATEGY
             value: {{ pruning_strategy }}

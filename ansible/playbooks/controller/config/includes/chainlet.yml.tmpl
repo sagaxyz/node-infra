@@ -109,6 +109,18 @@ spec:
             value: "%%% stake_owner_address %%%"
           - name: KEYPASSWD
             value: "%%% keychain_password %%%"
+{% if voting_period is defined %}
+          - name: VOTING_PERIOD
+            value: "%%% voting_period %%%"
+{% endif %}
+{% if node_rpc_domain is defined %}
+          - name: NODE_RPC
+            value: "https://{{ .ChainletName }}-{{ .ChainIdNumber }}-1.%%% node_rpc_domain %%%:443"
+{% endif %}
+{% if stake_amount is defined %}
+          - name: STAKE_AMOUNT
+            value: "%%% stake_amount %%%"
+{% endif %}
 {{ range $key, $value := .ChainletEnvVars }}
           - name: {{ $key | ToUpper }}
             value: "{{ $value }}"
