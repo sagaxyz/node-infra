@@ -42,11 +42,7 @@ deployment:
         number: 8546
         host_suffix: "ws.{{ rpc_generic_url_suffix | default(url_suffix | default('')) }}"
     env:
-      quorum_count: "{{ quorum_count }}"
       validator_mnemonic: "{{ validator_mnemonic | default('void') }}"
-      validator_addresses: ""
-      validator_addresses_eth: ""
-      validator_addresses_cosmos: "{{ validator_addresses }}"
       s3bucket: "{{ s3bucket_sagaevm }}"
       validator_provider: "{{ validator_provider }}"
       moniker: "{{ moniker }}"
