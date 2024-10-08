@@ -109,17 +109,41 @@ spec:
             value: "%%% stake_owner_address %%%"
           - name: KEYPASSWD
             value: "%%% keychain_password %%%"
+{% if versions.controller is version('0.10.0', '>=') %}
+          - name: VALIDATOR_ADDRESSES_COSMOS
+            value: "{{ .ChainletValidators }}"
+{% endif %}
 {% if voting_period is defined %}
           - name: VOTING_PERIOD
             value: "%%% voting_period %%%"
 {% endif %}
+{% if snapshot_interval is defined %}
+          - name: SNAPSHOT_INTERVAL
+            value: "%%% snapshot_interval %%%"
+{% endif %}
+{% if snapshot_keep_recent is defined %}
+          - name: SNAPSHOT_KEEP_RECENT
+            value: "%%% snapshot_keep_recent %%%"
+{% endif %}
+{% if snapshot_trust_interval is defined %}
+          - name: SNAPSHOT_TRUST_INTERVAL
+            value: "%%% snapshot_trust_interval %%%"
+{% endif %}
+{% if sync_rpc_domains is defined %}
+          - name: SYNC_RPC
+            value: "{% for domain in sync_rpc_domains %}https://{{ .ChainletName }}-{{ .ChainIdNumber }}-1-cosmosrpc.jsonrpc.%%% domain %%%:443{% if not loop.last %},{% endif %}{% endfor %}"
+{% endif %}
 {% if node_rpc_domain is defined %}
           - name: NODE_RPC
-            value: "https://{{ .ChainletName }}-{{ .ChainIdNumber }}-1.%%% node_rpc_domain %%%:443"
+            value: "https://{{ .ChainletName }}-{{ .ChainIdNumber }}-1-cosmosrpc.jsonrpc.%%% node_rpc_domain %%%:443"
 {% endif %}
 {% if stake_amount is defined %}
           - name: STAKE_AMOUNT
             value: "%%% stake_amount %%%"
+{% endif %}
+{% if staking_fees is defined %}
+          - name: STAKING_FEES
+            value: "%%% staking_fees %%%"
 {% endif %}
 {{ range $key, $value := .ChainletEnvVars }}
           - name: {{ $key | ToUpper }}

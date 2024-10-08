@@ -90,7 +90,7 @@ data:
   MAX_STRING_LENGTH_WITHOUT_TRIMMING: "2040"
   RE_CAPTCHA_SECRET_KEY: ""
   RE_CAPTCHA_CLIENT_KEY: ""
-  JSON_RPC: "https://{{ .ChainletJsonRpc }}"
+  JSON_RPC: "https://{{ .ChainletName }}-{{ .ChainIdNumber }}-1.jsonrpc.%%% rpc_url_suffixes[0] %%%"
   API_RATE_LIMIT: "50"
   API_RATE_LIMIT_BY_KEY: "50"
   API_RATE_LIMIT_BY_WHITELISTED_IP: "50"

@@ -45,3 +45,26 @@ spec:
                 port:
                   number: 8546
 {% endfor %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "ingress-{{ .Name }}-cosmos-jsonrpc"
+  namespace: "{{ .Namespace }}"
+  annotations:
+    saga.xyz/ingress-protocol: "jsonrpc"
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in rpc_url_suffixes %}
+    - host: "{{ .ChainletName }}-{{ .ChainIdNumber }}-1-cosmosrpc.jsonrpc.%%% url %%%"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chainlet
+                port:
+                  number: 26657
+{% endfor %}
