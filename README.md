@@ -12,7 +12,7 @@
 - [mainnet only] Request quota increase on AWS for `Inbound or outbound rules per security group` to `500`
 - Hosted zone on route53 we can use to expose SPC. We suggest a saga.* subdomain
 
-*⚠️ If deploying mainning make sure AWS rules per security group are increased to 500. This might take days and will break the mainnet deployment ⚠️*
+*⚠️ If deploying mainnet make sure AWS rules per security group are increased to 500. This might take days and will break the mainnet deployment ⚠️*
 
 **NOTE:** The user is only used for the provisioning. It is possible to deactivate the user after deploying the cluster for the first time, unless infra changes are required. Follow [this guide](link) to create a specific user/role to access the cluster.
 
