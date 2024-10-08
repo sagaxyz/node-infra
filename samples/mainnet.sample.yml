@@ -10,7 +10,6 @@ eks_clusters:
     # SPC and chainlets
     chain_id: "spc-1"
     keyname: "{{ inventory_hostname }}-key"
-    quorum_count: 4
     validator_addresses: saga1pdf6slnws5hqeg0wz5t4snrfzyx7wg7fra84q3 saga1954vr9dlykxxtmazesz3llntmdz7pn0ep07x6v saga1dque6vr4lzlkl0uqn6v6tdxys5g466jphah7d4 saga18u6dnjzd2gzh5fgprtwvx9adfwwn99qc6tagnh
     dev_addresses_cosmos: ""
     dev_addresses_eth: ""
@@ -29,9 +28,9 @@ eks_clusters:
     # === Editable Variables ===
     # Versions
     versions:
-      infrastructure: v1.0.0
-      spc: "0.2.3-rc"
-      controller: "0.9.1"
+      infrastructure: "release/production"
+      spc: "0.3.0-beta"
+      controller: "0.10.0-alpha.1"
 
     # EKS
     eks_kubernetes_version: "1.28"
@@ -43,6 +42,11 @@ eks_clusters:
     eks_nodegroup_cluster_size: 1
     eks_nodegroup_instance_type: m5a.4xlarge
     max_pods_per_node: 100
+
+    # DNS
+    ingress_external_address_host: "*.{{ url_suffix }}"
+    spc_external_address_host: "spc.{{ url_suffix }}"
+    url_suffix: "{{ route53_zone }}"
 
     # Services
     tls_enabled: false
@@ -64,13 +68,14 @@ eks_clusters:
   hosts:
     # === Validator Specific Variables ===
     eks-cluster-name: # CHANGE IT to desired EKS cluster name. E.g.: <your_moniker>-spc-mainnet:
-      aws_region: us-east-1 # CHANGE IT to desired AWS region
+      aws_region: xx-east-1 # CHANGE IT to desired AWS region
       aws_profile: your_aws_profile # CHANGE IT to a profile entry in ~/.aws/credentials with necessary permissions
       moniker: my_validator_moniker # CHANGE IT to your moniker
+      route53_zone: "" # CHANGE IT to a hosted zone in route53. E.g.: saga.yourdomain.com. It will be used to expose SPC
 
       # Secrets
       validator_mnemonic: "" # CHANGE IT to the 24 words validator mnemonic (really sensitive)
       vault_grafana_admin_password: "" # CHANGE IT to a generated password (sensitive)
-      keychain_password: "" # CHANGE IT password used to locally encrypt the keys
+      keychain_password: "" # CHANGE IT password used to locally encrypt the keys (sensitive)
       alertmanager:
         cluster_alerts_slack_url: "" # CHANGE IT to the webhook url (sensitive). Optionally it can be removed

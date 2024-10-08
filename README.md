@@ -2,11 +2,17 @@
 
 ## Prerequisites
 - An AWS account.
-- An AWS IAM User with privileges: `ec2:*`, `eks:*`, `iam:*`, `cloudformation:*`, `acm:*`, `autoscaling:Describe*`, `elasticloadbalancing:DescribeTargetGroups`. All can be restricted to the region the cluster is delivered.
+- An AWS IAM User with privileges: `ec2:*`, `eks:*`, `iam:*`, `cloudformation:*`, `acm:*`, `autoscaling:Describe*`, `route53:*`, `elasticloadbalancing:DescribeTargetGroups`. All can be restricted to the region the cluster is delivered.
 - `aws-cli` installed on the machine that is provisioning the cluster
 - The IAM user credentials should be stored locally in `~/.aws/credentials`
+- A public subdomain delegated to route53. This will be used to expose SPC to other validators. E.g.: [How to delegate cloudflare subdomain](https://developers.cloudflare.com/dns/manage-dns-records/how-to/subdomains-outside-cloudflare/)
 - Ansible installed
 - pip3 and python3 installed
+- Share the AWS account id with Saga, in order to gain programmatic access to genesis files
+- [mainnet only] Request quota increase on AWS for `Inbound or outbound rules per security group` to `500`
+- Hosted zone on route53 we can use to expose SPC. We suggest a saga.* subdomain
+
+*⚠️ If deploying mainning make sure AWS rules per security group are increased to 500. This might take days and will break the mainnet deployment ⚠️*
 
 **NOTE:** The user is only used for the provisioning. It is possible to deactivate the user after deploying the cluster for the first time, unless infra changes are required. Follow [this guide](link) to create a specific user/role to access the cluster.
 
@@ -17,6 +23,7 @@ Copy the testnet|mainnet inventory sample to your repo (`cp sample/<testnet|main
 - `aws_region`: the AWS region where the cluster runs.
 - `aws_profile`: the profile name of the deployer IAM User with the required privileges. This is used to provision the cluster. It has to be the same saved in `~/.aws/credentials`.
 - `moniker`: your validator moniker.
+- `route53_zone`: hosted zone in Route53 you will use to expose SPC p2p. Route53 must be autoritative.
 
 The default inventory hostname is `eks-cluster-name`. This is going to be the name of your EKS cluster. You can override it with your desired EKS cluster name. It can be your moniker if you don't have an already running cluster on AWS, in the same region. NOTE: this is a yaml key.
 
@@ -41,7 +48,7 @@ We recommend validators to only support validation and leave additional services
 - SPC Snapshots
 
 ## Provision
-This step provisions an EKS cluster with Karpenter autoscaler, oidc provider and EBS CSI driver. As a first step checkout the devnet branch of the infrastructure repo.
+This step provisions an EKS cluster with Karpenter autoscaler, oidc provider and EBS CSI driver. As a first step checkout the `release/mainnet` branch of the node-infra repo.
 
 This is the command to run to provision your cluster from the ansible directory:
 ```
@@ -61,7 +68,10 @@ ansible-playbook -i your_inventory_file.yml [-i your_secrets_file.yml] deploy.ym
 
 Also the deploy playbook is idempotent and can be run many times. It can be run, for example, to upgrade any application.
 
-After a sufficient number of validators have completed this step, you should see from the logs that spc is producing blocks (`kubectl get pods -n sagasrv-spc`).
+After SPC is live, your validator should be able to join the network. Check the logs of the SPC pod for info (`kubectl get pods -n sagasrv-spc`).
+
+## Joining as validator
+In order to join as validator make sure `validator_provider: 1`, that the validator address generated from your mnemonic has the necessary stake to join (send by Saga). The creation of the validator and join of the network will happen automatically if the prerequisites are satisfied as part of the start script of SPC and chainlets.
 
 ## Cluster access
 The deploy script will create a kubeconfig file: `~/.kube/cluster_name`. It is possible to access the cluster passing `--kubeconfig ~/.kube/cluster_name` to any kubectl command. To setup the kubeconfig without deploying:
