@@ -61,6 +61,15 @@ eks_clusters:
     # SPC
     spc_additional_args: ""
 
+    # latejoin
+    node_rpc_domain: testnet.sagarpc.io
+    stake_amount: 1500000
+    staking_fees: 100000
+    snapshot_trust_interval: 1000
+    sync_rpc_domains:
+      - st1.sagarpc.io
+      - stsrv1.sagarpc.io
+
   hosts:
     # === Validator Specific Variables ===
     eks-cluster-name: # CHANGE IT to desired EKS cluster name. E.g.: <your_moniker>-spc-testnet:

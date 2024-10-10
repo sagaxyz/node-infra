@@ -30,7 +30,7 @@ eks_clusters:
     versions:
       infrastructure: "release/production"
       spc: "0.3.0-beta"
-      controller: "0.10.0-alpha.1"
+      controller: "0.10.0-alpha.2"
 
     # EKS
     eks_kubernetes_version: "1.28"
@@ -67,8 +67,8 @@ eks_clusters:
 
     # latejoin
     node_rpc_domain: sagarpc.io
-    stake_amount: 1000
-    staking_fees: 10000
+    stake_amount: 1500000
+    staking_fees: 100000
     snapshot_trust_interval: 1000
     sync_rpc_domains:
       - spsrv1.sagarpc.io
