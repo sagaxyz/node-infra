@@ -10,6 +10,7 @@ eks_clusters:
     # SPC and chainlets
     chain_id: "spc-1"
     keyname: "{{ inventory_hostname }}-key"
+    quorum_count: 4
     validator_addresses: saga1pdf6slnws5hqeg0wz5t4snrfzyx7wg7fra84q3 saga1954vr9dlykxxtmazesz3llntmdz7pn0ep07x6v saga1dque6vr4lzlkl0uqn6v6tdxys5g466jphah7d4 saga18u6dnjzd2gzh5fgprtwvx9adfwwn99qc6tagnh
     dev_addresses_cosmos: ""
     dev_addresses_eth: ""
