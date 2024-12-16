@@ -13,3 +13,63 @@ spec:
   ports:
     - targetPort: 5183
       port: 5183
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "relayer"
+  namespace: "{{ .Namespace }}"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: "relayer"
+  template:
+    metadata:
+      labels:
+        app: "relayer"
+        chainId: "{{ .ChainId }}"
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+      containers:
+        - name: relayer
+          image: "%%% relayer_image %%%"
+          resources:
+            requests:
+              memory: "1Gi"
+            limits:
+              memory: "2Gi"
+          imagePullPolicy: Always
+          name: relayer
+          command: ["bash", "start.sh"]
+          env:
+            - name: KEYPASSWD
+              value: "%%% keychain_password %%%"
+            - name: CCV
+              value: "false"
+            - name: HUB
+              value: "true"
+            - name: CONSUMER_CHAIN_ID
+              value: "{{ .ChainId }}"
+            - name: CONSUMER_DENOM
+              value: "{{ .CoinDenom }}"
+            - name: CONSUMER_RPC
+              value: "http://{{ .Name }}.{{ .Namespace }}.svc.cluster.local:26657"
+            - name: CONSUMER_MNEMONIC
+              value: "%%% validator_mnemonic %%%"
+            - name: HUB_CHAIN_ID
+              value: "{{ .HubChainId }}"
+            - name: HUB_DENOM
+              value: "{{ .HubDenom }}"
+            - name: HUB_RPC
+              value: "http://{{ .Name }}.{{ .HubNamespace }}.svc.cluster.local:26657"
+            - name: HUB_API
+              value: "http://{{ .Name }}.{{ .HubNamespace }}.svc.cluster.local:1317"
+            - name: HUB_MNEMONIC
+              value: "%%% validator_mnemonic %%%"
+          ports:
+            - containerPort: 5183
