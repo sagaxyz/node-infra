@@ -21,6 +21,7 @@ rm ~/.ssc/config/genesis.*
 wget -P ~/.ssc/config $GENESIS_URL
 sed -i "s/persistent_peers = \"\"/persistent_peers = \"$PERSISTENT_PEERS\"/g" ~/.ssc/config/config.toml
 sed -i "s/addr_book_file = .*/addr_book_file = \"data\/addrbook.json\"/g" ~/.ssc/config/config.toml
+sed -i "s/indexer = .*/indexer = \"null\"/g" ~/.ssc/config/config.toml
 
 print_info "Start full node in the background"
 sscd start --pruning $PRUNING_STRATEGY &

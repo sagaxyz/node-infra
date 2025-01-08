@@ -15,7 +15,7 @@ metadata:
   labels:
     app: ssc-spanshot
 spec:
-  schedule: "0 0 * * *"
+  schedule: "0 0 */2 * *"
   concurrencyPolicy: Forbid
   jobTemplate:
     spec:
@@ -51,7 +51,7 @@ spec:
                 subPath: snapshot.sh
               resources:
                 requests:
-                  memory: "24Gi"
+                  memory: "6Gi"
                   cpu: "2"
                 limits:
                   memory: "32Gi"
