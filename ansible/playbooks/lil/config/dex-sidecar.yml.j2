@@ -1,0 +1,83 @@
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: sidecar
+  namespace: "{{ dex_chain_namespace }}"
+  labels:
+    app: sidecar
+spec:
+  type: ClusterIP
+  selector:
+    app: "sidecar"
+  ports:
+    - targetPort: 8545
+      port: 8545
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "sidecar"
+  namespace: "{{ dex_chain_namespace }}"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: "sidecar"
+  template:
+    metadata:
+      labels:
+        app: "sidecar"
+        chainId: "{{ dex_chain_id }}"
+    spec:
+      nodeSelector:
+        kubernetes.io/os: linux
+      restartPolicy: Always
+      containers:
+        - name: sidecar
+          image: sagaxyz/evmosproxy:{{ versions.dex_sidecar }}
+          resources:
+            requests:
+              memory: "1Gi"
+            limits:
+              memory: "2Gi"
+          imagePullPolicy: Always
+          name: sidecar
+          env:
+            - name: EVMOS_NODE_URL
+              value: "http://chainlet.{{ dex_chain_namespace }}.svc.cluster.local:8545"
+            - name: EVMOSNODE_COSMOS_URL
+              value: "http://chainlet.{{ dex_chain_namespace }}.svc.cluster.local:26657"
+            - name: FEEPAYER_PRIVATE_KEY
+              value: "{{ feepayer_private_key }}"
+            - name: VALIDATOR_MNEMONIC
+              value: "{{ dex_validator_mnemonic }}"
+            - name: CHAINID
+              value: "proxy-{{ dex_chain_id }}"
+            - name: MONIKER
+              value: "{{ moniker }}"
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "ingress-dex-sidecar"
+  namespace: "{{ dex_chain_namespace }}"
+  annotations:
+    saga.xyz/ingress-protocol: "jsonrpc"
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in rpc_url_suffixes %}
+    - host: "dex.jsonrpc.{{ url }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chainlet
+                port:
+                  number: 8545
+{% endfor %}

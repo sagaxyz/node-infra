@@ -9,7 +9,7 @@ metadata:
 spec:
   type: ClusterIP
   selector:
-    app: "{{ .Name }}"
+    app: "relayer"
   ports:
     - targetPort: 5183
       port: 5183
@@ -37,7 +37,7 @@ spec:
       restartPolicy: Always
       containers:
         - name: relayer
-          image: "%%% relayer_image %%%"
+          image: sagaxyz/controller-relayer:%%% versions.relayer %%%
           resources:
             requests:
               memory: "1Gi"
@@ -53,12 +53,23 @@ spec:
               value: "false"
             - name: HUB
               value: "true"
+{{ if $isHub }}
+            - name: CONSUMER_CHAIN_ID
+              value: "%%% ssc.chain_id %%%"
+            - name: CONSUMER_DENOM
+              value: "%%% ssc.denom %%%"
+            - name: CONSUMER_RPC
+              value: "%%% ssc.rpc %%%"
+            - name: CONSUMER_CREATE_ACCOUNT
+              value: "false"
+{{ else }}
             - name: CONSUMER_CHAIN_ID
               value: "{{ .ChainId }}"
             - name: CONSUMER_DENOM
               value: "{{ .CoinDenom }}"
             - name: CONSUMER_RPC
               value: "http://{{ .Name }}.{{ .Namespace }}.svc.cluster.local:26657"
+{{ end }}
             - name: CONSUMER_MNEMONIC
               value: "%%% validator_mnemonic %%%"
             - name: HUB_CHAIN_ID

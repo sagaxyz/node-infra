@@ -1,0 +1,18 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars:
+    dex_chain_namespace: saga-{{ dex_chain_id | replace('_', '-') }}
+
+  tasks:
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}/lil
+        state: directory
+        mode: '0744'
+
+    - name: Generate Dex Sidecar spec
+      ansible.builtin.template:
+        src: config/dex-sidecar.yml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-sidecar.yml
+        mode: '0644'

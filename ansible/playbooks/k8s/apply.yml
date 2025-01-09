@@ -332,3 +332,10 @@
         state: present
         src: ~/.ansible/deployments/{{ eks_cluster_name }}/healthz-ingress.yml
       when: explorer_generic_url_suffix is defined or rpc_generic_url_suffix is defined
+
+    - name: Apply lil Deployment spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-sidecar.yml
+      when: dex_chain_id is defined and dex_sidecar_enabled
