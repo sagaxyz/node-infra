@@ -54,8 +54,8 @@ spec:
               value: "{{ feepayer_private_key }}"
             - name: VALIDATOR_MNEMONIC
               value: "{{ dex_validator_mnemonic }}"
-            - name: CHAINID
-              value: "proxy-{{ dex_chain_id }}"
+            - name: CHAIN_ID
+              value: "proxy{{ dex_chain_id }}"
             - name: MONIKER
               value: "{{ moniker }}"
 ---
