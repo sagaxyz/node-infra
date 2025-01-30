@@ -1,7 +1,5 @@
-{{- /* $isHub := or (index .Tags "hub") (eq .ChainId "%%% hub_chain_id %%%") */ -}}
-{{- /* $isDex := or (index .Tags "dex") (eq .ChainId "%%% dex_chain_id %%%") */ -}}
-{{- $isHub := or (false) (eq .ChainId "%%% hub_chain_id %%%") -}}
-{{- $isDex := or (false) (eq .ChainId "%%% dex_chain_id %%%") -}}
+{{- $isHub := (eq .ChainId "%%% hub_chain_id %%%") -}}
+{{- $isDex := (eq .ChainId "%%% dex_chain_id %%%") -}}
 
 {% include 'includes/chainlet.yml.tmpl' %}
 
@@ -20,5 +18,7 @@
 {% endif %}
 
 {% if relayer_enabled %}
+{{ if ge .ChainletStackVersion "0.6.0" }}
 {% include 'includes/relayer.yml.tmpl' %}
+{{ end }}
 {% endif %}
