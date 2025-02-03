@@ -45,12 +45,14 @@ spec:
               memory: "2Gi"
           imagePullPolicy: Always
           name: relayer
-          command: ["bash", "start.sh"]
+          command: ["bash", "-c", "echo Waiting $CHANNEL_WAIT_TIME && sleep $CHANNEL_WAIT_TIME && ./start.sh"]
           env:
             - name: KEYPASSWD
               value: "%%% keychain_password %%%"
             - name: CCV
               value: "false"
+            - name: CHANNEL_WAIT_TIME
+              value: "%%% channel_wait_time %%%"
             - name: HUB
               value: "true"
 {{ if $isHub }}
