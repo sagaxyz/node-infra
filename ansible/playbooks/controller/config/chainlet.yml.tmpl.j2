@@ -3,11 +3,9 @@
 
 {% include 'includes/chainlet.yml.tmpl' %}
 
-{{ if and (not $isHub) (not $isDex) }}
 {% if rpc_enabled %}
 {% include 'includes/ingress.yml.tmpl' %}
 {% endif %}
-{{ end }}
 
 {% if explorer_sagaevm %}
 {% include 'includes/explorer.yml.tmpl' %}
