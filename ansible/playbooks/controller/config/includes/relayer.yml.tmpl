@@ -31,6 +31,10 @@ spec:
       labels:
         app: "relayer"
         chainId: "{{ .ChainId }}"
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "5183"
+        prometheus.io/path: "/relayer/metrics"
     spec:
       nodeSelector:
         kubernetes.io/os: linux
