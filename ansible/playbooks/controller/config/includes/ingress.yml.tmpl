@@ -1,3 +1,4 @@
+{{ if not $isHub }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -45,6 +46,7 @@ spec:
                 port:
                   number: 8546
 {% endfor %}
+{{ end }}
 ---
 apiVersion: networking.k8s.io/v1
 kind: Ingress
@@ -67,4 +69,27 @@ spec:
                 name: chainlet
                 port:
                   number: 26657
+{% endfor %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "ingress-{{ .Name }}-cosmos-api"
+  namespace: "{{ .Namespace }}"
+  annotations:
+    saga.xyz/ingress-protocol: "rest"
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in rpc_url_suffixes %}
+    - host: "{{ .ChainletName }}-{{ .ChainIdNumber }}-1-cosmosapi.jsonrpc.%%% url %%%"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chainlet
+                port:
+                  number: 1317
 {% endfor %}
