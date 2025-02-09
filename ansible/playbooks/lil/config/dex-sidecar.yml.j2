@@ -11,8 +11,18 @@ spec:
   selector:
     app: "sidecar"
   ports:
-    - targetPort: 8545
+    - name: cosmosgrpc
+      port: 9090
+      targetPort: 9090
+    - name: tendermintlcd
+      port: 1317
+      targetPort: 1317
+    - name: evmjsonrpc
       port: 8545
+      targetPort: 8545
+    - name: evmws
+      port: 8546
+      targetPort: 8546
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -62,7 +72,7 @@ spec:
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
-  name: "ingress-dex-sidecar"
+  name: "ingress-sidecar-jsonrpc"
   namespace: "{{ dex_chain_namespace }}"
   annotations:
     saga.xyz/ingress-protocol: "jsonrpc"
@@ -80,4 +90,74 @@ spec:
                 name: chainlet
                 port:
                   number: 8545
+{% endfor %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "ingress-sidecar-ws"
+  namespace: "{{ dex_chain_namespace }}"
+  annotations:
+    nginx.org/websocket-services: "sidecar"
+    saga.xyz/ingress-protocol: "ws"
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in rpc_url_suffixes %}
+    - host: "dex.ws.{{ url }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chainlet
+                port:
+                  number: 8546
+{% endfor %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "ingress-sidecar-cosmos-jsonrpc"
+  namespace: "{{ dex_chain_namespace }}"
+  annotations:
+    saga.xyz/ingress-protocol: "jsonrpc"
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in rpc_url_suffixes %}
+    - host: "dex-cosmosrpc.jsonrpc.{{ url }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chainlet
+                port:
+                  number: 26657
+{% endfor %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "ingress-sidecar-cosmos-api"
+  namespace: "{{ dex_chain_namespace }}"
+  annotations:
+    saga.xyz/ingress-protocol: "rest"
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in rpc_url_suffixes %}
+    - host: "dex-cosmosapi.jsonrpc.{{ url }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: chainlet
+                port:
+                  number: 1317
 {% endfor %}
