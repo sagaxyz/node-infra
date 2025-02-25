@@ -1,74 +1,4 @@
 ---
-apiVersion: v1
-kind: Service
-metadata:
-  name: sidecar
-  namespace: "{{ dex_chain_namespace }}"
-  labels:
-    app: sidecar
-spec:
-  type: ClusterIP
-  selector:
-    app: "sidecar"
-  ports:
-    - name: cosmosgrpc
-      port: 9090
-      targetPort: 9090
-    - name: tendermintlcd
-      port: 1317
-      targetPort: 1317
-    - name: evmjsonrpc
-      port: 8545
-      targetPort: 8545
-    - name: evmws
-      port: 8546
-      targetPort: 8546
----
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: "sidecar"
-  namespace: "{{ dex_chain_namespace }}"
-spec:
-  replicas: 1
-  strategy:
-    type: Recreate
-  selector:
-    matchLabels:
-      app: "sidecar"
-  template:
-    metadata:
-      labels:
-        app: "sidecar"
-        chainId: "{{ dex_chain_id }}"
-    spec:
-      nodeSelector:
-        kubernetes.io/os: linux
-      restartPolicy: Always
-      containers:
-        - name: sidecar
-          image: sagaxyz/evmosproxy:{{ versions.dex_sidecar }}
-          resources:
-            requests:
-              memory: "1Gi"
-            limits:
-              memory: "2Gi"
-          imagePullPolicy: Always
-          name: sidecar
-          env:
-            - name: EVMOS_NODE_URL
-              value: "http://chainlet.{{ dex_chain_namespace }}.svc.cluster.local:8545"
-            - name: EVMOSNODE_COSMOS_URL
-              value: "http://chainlet.{{ dex_chain_namespace }}.svc.cluster.local:26657"
-            - name: FEEPAYER_PRIVATE_KEY
-              value: "{{ feepayer_private_key }}"
-            - name: VALIDATOR_MNEMONIC
-              value: "{{ dex_validator_mnemonic }}"
-            - name: CHAIN_ID
-              value: "proxy{{ dex_chain_id }}"
-            - name: MONIKER
-              value: "{{ moniker }}"
----
 apiVersion: networking.k8s.io/v1
 kind: Ingress
 metadata:
@@ -80,7 +10,7 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in rpc_url_suffixes %}
-    - host: "dex.jsonrpc.{{ url }}"
+    - host: "sagaevm.jsonrpc.{{ url }}"
       http:
         paths:
           - path: /
@@ -98,13 +28,13 @@ metadata:
   name: "ingress-sidecar-ws"
   namespace: "{{ dex_chain_namespace }}"
   annotations:
-    nginx.org/websocket-services: "sidecar"
+    nginx.org/websocket-services: "chainlet"
     saga.xyz/ingress-protocol: "ws"
 spec:
   ingressClassName: nginx
   rules:
 {% for url in rpc_url_suffixes %}
-    - host: "dex.ws.{{ url }}"
+    - host: "sagaevm.ws.{{ url }}"
       http:
         paths:
           - path: /
@@ -127,7 +57,7 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in rpc_url_suffixes %}
-    - host: "dex-cosmosrpc.jsonrpc.{{ url }}"
+    - host: "sagaevm-cosmosrpc.jsonrpc.{{ url }}"
       http:
         paths:
           - path: /
@@ -150,7 +80,7 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in rpc_url_suffixes %}
-    - host: "dex-cosmosapi.jsonrpc.{{ url }}"
+    - host: "sagaevm-cosmosapi.jsonrpc.{{ url }}"
       http:
         paths:
           - path: /
