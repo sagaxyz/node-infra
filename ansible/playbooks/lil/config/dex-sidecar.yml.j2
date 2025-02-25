@@ -10,7 +10,7 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in rpc_url_suffixes %}
-    - host: "sagaevm.jsonrpc.{{ url }}"
+    - host: "{{ dex_vanity_name }}.jsonrpc.{{ url }}"
       http:
         paths:
           - path: /
@@ -34,7 +34,7 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in rpc_url_suffixes %}
-    - host: "sagaevm.ws.{{ url }}"
+    - host: "{{ dex_vanity_name }}.ws.{{ url }}"
       http:
         paths:
           - path: /
@@ -57,7 +57,7 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in rpc_url_suffixes %}
-    - host: "sagaevm-cosmosrpc.jsonrpc.{{ url }}"
+    - host: "{{ dex_vanity_name }}-cosmosrpc.jsonrpc.{{ url }}"
       http:
         paths:
           - path: /
@@ -80,7 +80,7 @@ spec:
   ingressClassName: nginx
   rules:
 {% for url in rpc_url_suffixes %}
-    - host: "sagaevm-cosmosapi.jsonrpc.{{ url }}"
+    - host: "{{ dex_vanity_name }}-cosmosapi.jsonrpc.{{ url }}"
       http:
         paths:
           - path: /
@@ -91,3 +91,29 @@ spec:
                 port:
                   number: 1317
 {% endfor %}
+
+{% if explorer_sagaevm %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-sidecar-blockscout-frontend
+  namespace: "{{ dex_chain_namespace }}"
+  annotations:
+    saga.xyz/ingress-protocol: "explorer"
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in explorer_url_suffixes %}
+    - host: "{{ dex_vanity_name }}.{{ url }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: blockscout-frontend
+                port:
+                  number: 3000
+{% endfor %}
+{% endif %}

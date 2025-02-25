@@ -147,6 +147,8 @@ spec:
 {{ if $isDex }}
           - name: FEE_PAYER_KEY
             value: "%%% feepayer_private_key %%%"
+          - name: TRACE
+            value: "--evm.tracer=json"
 {{ end }}
 {% endif %}
 {{ range $key, $value := .ChainletEnvVars }}

@@ -3,6 +3,7 @@
 
   vars:
     dex_chain_namespace: saga-{{ dex_chain_id | replace('_', '-') }}
+    dex_vanity_name: "{{ dex_chain_id.split('_')[0] }}"
 
   tasks:
     - name: Create a directory if it does not exist
