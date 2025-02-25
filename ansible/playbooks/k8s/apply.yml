@@ -2,15 +2,15 @@
 - hosts: eks_clusters
   gather_facts: false
   vars:
-    - metrics_deployment_enabled: "{{ metrics_enabled | default(true) }}"
-    - deploy_alerting: "{{ chains_monitor_enabled and deployment_enabled and metrics_deployment_enabled }}"
-    - alertmanager_enabled: "{{ alertmanager is defined }}"
-    - alertmanager_dir:  "{{ prometheus_operator_dir }}/alertmanager"
-    - prometheus_operator_dir: "~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator"
-    - dashboards_dir: "{{ prometheus_operator_dir }}/dashboards"
-    - alerts_dir: "{{ prometheus_operator_dir }}/alerts"
-    - chainlets_dir: "~/.ansible/deployments/{{ eks_cluster_name }}/chainlets"
-    - public_controller: "{{ rpc_enabled }}"
+    metrics_deployment_enabled: "{{ metrics_enabled | default(true) }}"
+    deploy_alerting: "{{ chains_monitor_enabled and deployment_enabled and metrics_deployment_enabled }}"
+    alertmanager_enabled: "{{ alertmanager is defined }}"
+    alertmanager_dir:  "{{ prometheus_operator_dir }}/alertmanager"
+    prometheus_operator_dir: "~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator"
+    dashboards_dir: "{{ prometheus_operator_dir }}/dashboards"
+    alerts_dir: "{{ prometheus_operator_dir }}/alerts"
+    chainlets_dir: "~/.ansible/deployments/{{ eks_cluster_name }}/chainlets"
+    public_controller: "{{ rpc_enabled }}"
   tasks:
     - name: Apply SPC Namespace spec
       kubernetes.core.k8s:
