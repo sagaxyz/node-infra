@@ -143,6 +143,12 @@ spec:
           - name: STAKING_FEES
             value: "%%% staking_fees %%%"
 {% endif %}
+{% if feepayer_private_key is defined %}
+{{ if $isDex }}
+          - name: FEE_PAYER_KEY
+            value: "%%% feepayer_private_key %%%"
+{{ end }}
+{% endif %}
 {{ range $key, $value := .ChainletEnvVars }}
           - name: {{ $key | ToUpper }}
             value: "{{ $value }}"
