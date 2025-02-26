@@ -22,7 +22,7 @@ data:
   IPC_PATH: ""
   NETWORK_PATH: /
   BLOCKSCOUT_PROTOCOL: ""
-  BLOCKSCOUT_VERSION: "{{ .ExplorerVersion }}"
+  BLOCKSCOUT_VERSION: "7.0.1"
   PORT: "4000"
   COIN_NAME: {{ .CoinDenom }}
   EMISSION_FORMAT: DEFAULT
@@ -493,7 +493,7 @@ spec:
       restartPolicy: Always
       containers:
         - name: blockscout-frontend
-          image: "sagaxyz/blockscout-frontend:v1.17.0"
+          image: "sagaxyz/blockscout-frontend:v1.37.6"
           resources:
             requests:
               cpu: 100m
