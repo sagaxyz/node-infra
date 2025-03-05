@@ -147,8 +147,10 @@ spec:
 {{ if $isDex }}
           - name: FEE_PAYER_KEY
             value: "%%% feepayer_private_key %%%"
+{% if dex_tracing_enabled %}
           - name: OPTS
             value: "--json-rpc.api eth,txpool,personal,net,debug,web3 --api.enabled-unsafe-cors --api.enable --grpc.address 0.0.0.0:9090 --json-rpc.address 0.0.0.0:8545 --json-rpc.enable true --json-rpc.api true --json-rpc.ws-address 0.0.0.0:8546 --evm.tracer=json"
+{% endif %}
 {{ end }}
 {% endif %}
 {{ range $key, $value := .ChainletEnvVars }}
