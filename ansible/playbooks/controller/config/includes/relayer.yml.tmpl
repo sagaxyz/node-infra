@@ -68,6 +68,8 @@ spec:
               value: "%%% ssc.rpc %%%"
             - name: CONSUMER_CREATE_ACCOUNT
               value: "false"
+            - name: CONSUMER_GAS_PRICE
+              value: "%%% ssc.consumer_gas_price %%%"
 {{ else }}
             - name: CONSUMER_CHAIN_ID
               value: "{{ .ChainId }}"
