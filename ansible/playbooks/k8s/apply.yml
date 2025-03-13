@@ -11,6 +11,8 @@
     alerts_dir: "{{ prometheus_operator_dir }}/alerts"
     chainlets_dir: "~/.ansible/deployments/{{ eks_cluster_name }}/chainlets"
     public_controller: "{{ rpc_enabled }}"
+    dex_balance_monitor_enabled: dex_feepayers_addresses_monitor is defined
+    dex_service_namespace: "{{ 'sagasrv-dex' if dex_balance_monitor_enabled else undefined }}"
   tasks:
     - name: Apply SPC Namespace spec
       kubernetes.core.k8s:
@@ -44,6 +46,17 @@
         kubeconfig: "{{ k8s_kubeconfig }}"
         state: present
         src: ~/.ansible/deployments/{{ eks_cluster_name }}/spc-service.yml
+
+    - name: Apply dex service namespace
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        definition:
+          apiVersion: v1
+          kind: Namespace
+          metadata:
+            name: "{{ dex_service_namespace }}"
+      when: dex_service_namespace is defined
 
     - name: Get elb info spc
       kubernetes.core.k8s_info:
@@ -339,3 +352,10 @@
         state: present
         src: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-sidecar.yml
       when: dex_chain_id is defined and dex_sidecar_enabled
+
+    - name: Apply EVM Balance Exporter Deployment spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/evm-balance-exporter.yml
+      when: dex_balance_monitor_enabled
