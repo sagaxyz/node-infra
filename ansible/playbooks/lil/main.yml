@@ -4,7 +4,7 @@
   vars:
     dex_chain_namespace: saga-{{ dex_chain_id | replace('_', '-') }}
     dex_vanity_name: "{{ dex_chain_id.split('_')[0] }}"
-    dex_balance_monitor_enabled: dex_feepayers_addresses_monitor is defined
+    dex_balance_monitor_enabled: dex_feepayers_monitor_targets is defined
     dex_service_namespace: "{{ 'sagasrv-dex' if dex_balance_monitor_enabled else undefined }}"
 
   tasks:
@@ -20,9 +20,9 @@
         dest: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-sidecar.yml
         mode: '0644'
 
-    - name: Generate EVM Balance Exporter specs
+    - name: Generate Cosmos Balance Exporter specs
       ansible.builtin.template:
-        src: config/evm-balance-exporter.yml.j2
-        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/evm-balance-exporter.yml
+        src: config/cosmos-balance-exporter.yml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/cosmos-balance-exporter.yml
         mode: '0644'
-      when: dex_feepayers_addresses_monitor is defined
+      when: dex_feepayers_monitor_targets is defined

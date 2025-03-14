@@ -18,7 +18,7 @@
     "editable": true,
     "fiscalYearStartMonth": 0,
     "graphTooltip": 0,
-    "id": 45,
+    "id": 46,
     "links": [],
     "liveNow": false,
     "panels": [
@@ -108,14 +108,14 @@
               "uid": "P1809F7CD0C75ACF3"
             },
             "editorMode": "code",
-            "expr": "sum(evm_balance{chainId=\"sagaevm_5464-1\"}) by (address)",
+            "expr": "sum(cosmos_balance{chain_id=\"$chain_id\", denom=\"$denom\"}) by (address)",
             "instant": false,
             "legendFormat": "__auto",
             "range": true,
             "refId": "A"
           }
         ],
-        "title": "Dex Feepayer balances",
+        "title": "Balance",
         "type": "timeseries"
       }
     ],
@@ -123,16 +123,73 @@
     "schemaVersion": 39,
     "tags": [],
     "templating": {
-      "list": []
+      "list": [
+        {
+          "current": {
+            "selected": true,
+            "text": "ssc-1",
+            "value": "ssc-1"
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "definition": "label_values(cosmos_balance,chain_id)",
+          "hide": 0,
+          "includeAll": false,
+          "label": "Chain Id",
+          "multi": false,
+          "name": "chain_id",
+          "options": [],
+          "query": {
+            "qryType": 1,
+            "query": "label_values(cosmos_balance,chain_id)",
+            "refId": "PrometheusVariableQueryEditor-VariableQuery"
+          },
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "type": "query"
+        },
+        {
+          "current": {
+            "selected": false,
+            "text": "usaga",
+            "value": "usaga"
+          },
+          "datasource": {
+            "type": "prometheus",
+            "uid": "P1809F7CD0C75ACF3"
+          },
+          "definition": "label_values(cosmos_balance{chain_id=\"$chain_id\"},denom)",
+          "hide": 0,
+          "includeAll": false,
+          "label": "Denom",
+          "multi": false,
+          "name": "denom",
+          "options": [],
+          "query": {
+            "qryType": 1,
+            "query": "label_values(cosmos_balance{chain_id=\"$chain_id\"},denom)",
+            "refId": "PrometheusVariableQueryEditor-VariableQuery"
+          },
+          "refresh": 1,
+          "regex": "",
+          "skipUrlSync": false,
+          "sort": 0,
+          "type": "query"
+        }
+      ]
     },
     "time": {
-      "from": "now-1h",
+      "from": "now-6h",
       "to": "now"
     },
     "timepicker": {},
     "timezone": "",
-    "title": "Dex Balances",
-    "uid": "bd9e4573-3576-45a1-b088-04364e90f6af",
-    "version": 2,
+    "title": "Relayers and feepayers balances",
+    "uid": "ede30c32-4203-4c5a-9345-10c8a137649e",
+    "version": 3,
     "weekStart": ""
   }

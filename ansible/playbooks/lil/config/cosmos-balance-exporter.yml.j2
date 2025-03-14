@@ -1,0 +1,48 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: cosmos-balance-exporter
+  namespace: {{ dex_service_namespace }}
+  labels:
+    app: cosmos-balance-exporter
+spec:
+  selector:
+    matchLabels:
+      app: cosmos-balance-exporter
+  template:
+    metadata:
+      labels:
+        app: cosmos-balance-exporter
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: cosmos-balance-exporter
+        image: sagaxyz/cosmos-balance-exporter:0.0.1
+        volumeMounts:
+        - name: config-volume
+          mountPath: /root/config.yaml
+          subPath: config.yaml
+      volumes:
+      - name: config-volume
+        configMap:
+          name: cosmos-balance-exporter-config
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: cosmos-balance-exporter-config
+  namespace: {{ dex_service_namespace }}
+data:
+  config.yaml: |
+    targets:
+{% for target in dex_feepayers_monitor_targets %}
+      - api_url: {{ target.api_url }}
+        chain_id: {{ target.chain_id }}
+        accounts:
+{% for account in target.accounts %}
+          - name: {{ account.name }}
+            address: {{ account.address }}
+{% endfor %}
+{% endfor %}
