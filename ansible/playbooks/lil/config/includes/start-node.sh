@@ -25,6 +25,9 @@ ExitOnError() {
 
 ConfigureStateSync()
 {
+  ValidateEnvVar "SYNC_RPC"
+  ValidateEnvVar "SNAPSHOT_TRUST_INTERVAL"
+
   Logger "Starting function ConfigureStartFromStateSync"
   RPC_SERVER=$(echo $SYNC_RPC|awk -F"," '{gsub("tcp","http",$1);print $1}')
   CURRENT_BLOCK=$(curl -s "$RPC_SERVER"/status | jq '.result.sync_info.latest_block_height'| awk 'gsub("\"","",$0)')
@@ -163,9 +166,7 @@ ValidateAndEchoEnvVars()
     ValidateEnvVar "PRUNING"
     ValidateEnvVar "LOG_LEVEL"
     ValidateEnvVar "MINIMUM_GAS_PRICES"
-    ValidateEnvVar "SYNC_RPC"
     ValidateEnvVar "PEERS"
-    ValidateEnvVar "SNAPSHOT_TRUST_INTERVAL"
 }
 
 ## Main
@@ -173,5 +174,9 @@ ValidateAndEchoEnvVars
 Init
 InitGenesis
 UpdateTomlConfigs
-ConfigureStateSync
+
+if [ -n "$SYNC_RPC" ]; then
+  ConfigureStateSync
+fi
+
 Start
