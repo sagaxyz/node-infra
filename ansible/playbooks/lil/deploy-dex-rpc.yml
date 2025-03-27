@@ -1,0 +1,44 @@
+
+- hosts: eks_clusters
+  gather_facts: false
+  vars:
+    rpc_url_suffixes: "{{ [rpc_generic_url_suffix, url_suffix] if rpc_generic_url_suffix is defined else [url_suffix] }}"
+    dex_service_namespace: "{{ 'sagasrv-dex' if dex_rpc else undefined }}"
+    deploy_enabled: dex_chain_id is defined and dex_rpc is defined
+    test_deploy_enabled: deploy_enabled and dex_rpc.ethproxy_test_version is defined
+
+  tasks:
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}/lil
+        state: directory
+        mode: '0744'
+      when: deploy_enabled
+
+    - name: Generate Dex RPC spec
+      ansible.builtin.template:
+        src: config/dex-rpc.yml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-rpc.yml
+        mode: '0644'
+      when: deploy_enabled
+
+    - name: Apply Dex RPC spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-rpc.yml
+      when: deploy_enabled
+
+    - name: Generate Dex RPC spec (test)
+      ansible.builtin.template:
+        src: config/dex-rpc-test.yml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-rpc-test.yml
+        mode: '0644'
+      when: test_deploy_enabled
+
+    - name: Apply Dex RPC spec (test)
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-rpc-test.yml
+      when: test_deploy_enabled

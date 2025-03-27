@@ -92,6 +92,7 @@ data:
   RE_CAPTCHA_CLIENT_KEY: ""
 {{ if $isDex }}
   JSON_RPC: "https://{{ .ChainletName }}.jsonrpc.%%% rpc_url_suffixes[0] %%%"
+  ETHEREUM_JSONRPC_TRACE_URL: "http://{{ .Name }}:8545"
 {{ else }}
   JSON_RPC: "https://{{ .ChainletName }}-{{ .ChainIdNumber }}-1.jsonrpc.%%% rpc_url_suffixes[0] %%%"
 {{ end }}

@@ -1,0 +1,25 @@
+loglevel: "trace"
+node_rpc: "tcp://chainlet-ro:26657"
+node_json_rpc: "http://chainlet-ro:8545"
+chain_id: "{{ dex_chain_id }}"
+account_address_prefix: "saga"
+server:
+  json_rpc:
+    address: "0.0.0.0:8545"
+    http_timeout: "30s"
+    http_idle_timeout: "60s"
+    rate_limit:
+      enabled: true
+      ip_header: "True-Client-IP"
+      rate: 100_000
+      burst: 10_000_000
+services:
+  fee_payer:
+    enabled: true
+    private_keys:
+      - "{{ feepayer_private_keys[1] }}"
+    broadcast_node_rpc: "tcp://chainlet-rw:26657"
+    param_fetch_interval: "3s"
+    gas_limit: "7000000"
+  proxy:
+    request_timeout: "4s"

@@ -1,0 +1,78 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ethproxy-config-test
+  namespace: {{ dex_service_namespace }}
+data:
+  ethproxy.yml: |
+{% filter indent(width=4) %}
+    {% include 'includes/ethproxy-test.yml.j2' %}
+{% endfilter %}
+
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ethproxy-test
+  namespace: {{ dex_service_namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ethproxy-test
+  template:
+    metadata:
+      labels:
+        app: ethproxy-test
+    spec:
+      containers:
+      - name: ethproxy-test
+        image: sagaxyz/ethproxy:{{ dex_rpc.ethproxy_test_version }}
+        ports:
+        - containerPort: 8545
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/saga/ethproxy
+      volumes:
+      - name: config-volume
+        configMap:
+          name: ethproxy-config-test
+          items:
+          - key: ethproxy.yml
+            path: ethproxy.yml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ethproxy-test
+  namespace: {{ dex_service_namespace }}
+spec:
+  selector:
+    app: ethproxy-test
+  ports:
+  - port: 8545
+    targetPort: 8545
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "ingress-ethproxy-test-jsonrpc"
+  namespace: {{ dex_service_namespace }}
+  annotations:
+    saga.xyz/ingress-protocol: "jsonrpc"
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in rpc_url_suffixes %}
+    - host: "sagaevm-test.jsonrpc.{{ url }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ethproxy-test
+                port:
+                  number: 8545
+{% endfor %}
