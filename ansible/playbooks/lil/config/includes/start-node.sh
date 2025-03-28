@@ -4,6 +4,7 @@ SNAPSHOT_TRUST_INTERVAL=${SNAPSHOT_TRUST_INTERVAL:-1000}
 BOND_DENOM=${BOND_DENOM:-stake}
 MINIMUM_GAS_PRICES=0.0001${DENOM},0.0001${BOND_DENOM}
 MEMPOOL_SIZE=${MEMPOOL_SIZE:-500}
+LOG_LEVEL=${LOG_LEVEL:-info}
 CONFIG_DIR=$HOME/.sagaosd/config
 CONFIG_FILE=$CONFIG_DIR/config.toml
 APP_CONFIG_FILE=$CONFIG_DIR/app.toml
@@ -129,6 +130,19 @@ InitGenesis() {
     Logger "Exiting function InitGenesis"
 }
 
+ShouldInit() {
+    Logger "Starting function ShouldInit"
+
+    if [ -f "$CONFIG_DIR/genesis.json" ]; then
+        Logger "Genesis file exists under config directory, no initialization needed"
+        return 1
+    fi
+
+    Logger "Genesis file not found under config directory, initialization needed"
+    Logger "Exiting function ShouldInit"
+    return 0
+}
+
 Start() {
     Logger "Starting function Start"
     sagaosd start --pruning=$PRUNING --log_level=$LOG_LEVEL --minimum-gas-prices=$MINIMUM_GAS_PRICES $OPTS
@@ -171,8 +185,10 @@ ValidateAndEchoEnvVars()
 
 ## Main
 ValidateAndEchoEnvVars
-Init
-InitGenesis
+if ShouldInit; then
+  Init
+  InitGenesis
+fi
 UpdateTomlConfigs
 
 if [ -n "$SYNC_RPC" ]; then
