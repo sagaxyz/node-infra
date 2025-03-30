@@ -57,6 +57,9 @@ spec:
     metadata:
       labels:
         app: ethproxy
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
     spec:
       containers:
       - name: ethproxy

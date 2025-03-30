@@ -13,6 +13,9 @@ server:
       ip_header: "True-Client-IP"
       rate: 100_000
       burst: 10_000_000
+  prometheus:
+    enabled: true
+    address: "0.0.0.0:9090"
 services:
   fee_payer:
     enabled: true
