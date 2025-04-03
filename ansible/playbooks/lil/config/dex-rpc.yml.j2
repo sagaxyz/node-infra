@@ -69,6 +69,13 @@ spec:
         volumeMounts:
         - name: config-volume
           mountPath: /etc/saga/ethproxy
+        resources:
+          requests:
+            memory: "4Gi"
+            cpu: "2"
+          limits:
+            memory: "8Gi"
+            cpu: "4"
       volumes:
       - name: config-volume
         configMap:
