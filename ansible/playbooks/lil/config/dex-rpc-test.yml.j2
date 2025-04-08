@@ -11,6 +11,15 @@ data:
 {% endfilter %}
 
 ---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ethproxy-secrets-test
+  namespace: {{ dex_service_namespace }}
+stringData:
+  FEEPAYER_KEYS: "{{ feepayer_private_keys_test | join(',') }}"
+
+---
 apiVersion: apps/v1
 kind: StatefulSet
 metadata:
@@ -29,6 +38,16 @@ spec:
       containers:
       - name: ethproxy-test
         image: sagaxyz/ethproxy:{{ dex_rpc.ethproxy_test_version }}
+        command:
+        - /bin/sh
+        - -c
+        - |
+          INDEX=${HOSTNAME##*-}
+          export ETHPROXY_SERVICES_FEE_PAYER_PRIVATE_KEYS=$(echo $FEEPAYER_KEYS | tr ',' '\n' | sed -n "$((INDEX+1))p")
+          exec /usr/bin/ethproxy -config /etc/saga/ethproxy/ethproxy.yml
+        envFrom:
+        - secretRef:
+            name: ethproxy-secrets-test
         ports:
         - containerPort: 8545
         volumeMounts:
