@@ -276,6 +276,8 @@ metadata:
   annotations:
     nginx.org/websocket-services: blockscout-backend
     nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header Access-Control-Allow-Headers *;
 spec:
   ingressClassName: nginx
   rules:
