@@ -1006,7 +1006,7 @@
           },
           "editorMode": "code",
           "exemplar": false,
-          "expr": "sum(ethproxy_rate_limit_total) by (addr)",
+          "expr": "sum(ethproxy_rate_limit_total) by (address)",
           "format": "table",
           "instant": true,
           "legendFormat": "__auto",
