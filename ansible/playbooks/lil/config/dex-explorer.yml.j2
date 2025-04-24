@@ -160,3 +160,211 @@ spec:
     - port: 5432
   selector:
     app: postgres
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blockscout-backend-configmap
+  namespace: "{{ dex_service_namespace }}"
+data:
+  API_V2_ENABLED: "true"
+  PERMANENT_DARK_MODE_ENABLED: "true"
+  ETHEREUM_JSONRPC_VARIANT: geth
+  ETHEREUM_JSONRPC_HTTP_URL: "http://{{ dex_vanity_name }}:8545"
+  ETHEREUM_JSONRPC_WS_URL: "ws://{{ dex_vanity_name }}:8546"
+  DATABASE_URL: "postgresql://{{ explorer_db_user }}:{{ explorer_db_pwd }}@blockscout-db.blockscout.svc.cluster.local:5432/blockscout-{{ dex_chain_id }}"
+  DATABASE_READ_ONLY_API_URL: "postgresql://{{ explorer_db_user }}:{{ explorer_db_pwd }}@blockscout-db-ro.blockscout.svc.cluster.local:5432/blockscout-{{ dex_chain_id }}"
+  NETWORK: ""
+  SUBNETWORK: "{{ dex_vanity_name }}"
+  LOGO: /images/saga_logo.svg
+  LOGO_FOOTER: /images/saga_logo.svg
+  ETHEREUM_JSONRPC_TRANSPORT: http
+  PORT: "4000"
+  COIN_NAME: {{ coin_denom }}
+  COIN: {{ coin_denom }}
+  POOL_SIZE: "5"
+  POOL_SIZE_API: "5"
+  ECTO_USE_SSL: "true"
+  HEART_BEAT_TIMEOUT: "30"
+  BLOCK_TRANSFORMER: base
+  CHAIN_ID: "{{ dex_chain_id }}"
+  SECRET_KEY_BASE: "{{ explorer_secret_key_base }}"
+  DISABLE_WEBAPP: "true"
+  INDEXER_INTERNAL_TRANSACTIONS_TRACER_TYPE: "opcode"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blockscout-frontend-configmap
+  namespace: "{{ dex_service_namespace }}"
+data:
+  NEXT_PUBLIC_APP_HOST: "{{ dex_vanity_name }}.explorer.{{ explorer_url_suffix }}"
+  NEXT_PUBLIC_NETWORK_RPC_URL: "https://{{ dex_vanity_name }}.jsonrpc.{{ explorer_url_suffix }}"
+  NEXT_PUBLIC_APP_PORT: "443"
+  NEXT_PUBLIC_NETWORK_NAME: "{{ dex_vanity_name }}"
+  NEXT_PUBLIC_NETWORK_SHORT_NAME: "{{ dex_vanity_name }}"
+  NEXT_PUBLIC_NETWORK_ID: "{{ dex_chain_id }}"
+  NEXT_PUBLIC_NETWORK_CURRENCY_NAME: "{{ coin_denom }}"
+  NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: "{{ coin_denom }}"
+  NEXT_PUBLIC_NETWORK_VERIFICATION_TYPE: "validation"
+  NEXT_PUBLIC_IS_TESTNET: "{{ explorer_is_testnet }}"
+  NEXT_PUBLIC_API_HOST: "api-{{ dex_vanity_name }}.explorer.{{ explorer_url_suffix }}"
+  NEXT_PUBLIC_STATS_API_HOST: "https://stats-{{ dex_vanity_name }}.explorer.{{ explorer_url_suffix }}"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blockscout-stats-configmap
+  namespace: "{{ dex_service_namespace }}"
+data:
+  STATS__SERVER__HTTP__ENABLED: "true"
+  STATS__SERVER__HTTP__ADDR: "0.0.0.0:8051"
+  STATS__SERVER__HTTP__MAX_BODY_SIZE: "2097152"
+  STATS__DEFAULT_SCHEDULE: "0 0 1 * * * *"
+  STATS__TRACING__ENABLED: "true"
+  STATS__TRACING__FORMAT: "default"
+  STATS__DB_URL: "postgresql://{{ explorer_db_user }}:{{ explorer_db_pwd }}@blockscout-db-stats.blockscout.svc.cluster.local:5432/stats-{{ dex_chain_id }}"
+  STATS__BLOCKSCOUT_DB_URL: "postgresql://{{ explorer_db_user }}:{{ explorer_db_pwd }}@blockscout-db-ro.blockscout.svc.cluster.local:5432/blockscout-{{ dex_chain_id }}"
+  STATS__CREATE_DATABASE: "true"
+  STATS__RUN_MIGRATIONS: "true"
+  STATS__METRICS__ENABLED: "false"
+  STATS__METRICS__ADDR: "0.0.0.0:6060"
+  STATS__METRICS__ROUTE: "/metrics"
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blockscout-backend
+  namespace: "{{ dex_service_namespace }}"
+  labels:
+    app: blockscout-backend
+spec:
+  type: ClusterIP
+  selector:
+    app: blockscout-backend
+  ports:
+    - targetPort: 4000
+      port: 4000
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blockscout-stats
+  namespace: "{{ dex_service_namespace }}"
+  labels:
+    app: blockscout-stats
+spec:
+  type: ClusterIP
+  selector:
+    app: blockscout-stats
+  ports:
+    - targetPort: 8051
+      port: 8051
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: blockscout-frontend
+  namespace: "{{ dex_service_namespace }}"
+  labels:
+    app: blockscout-frontend
+spec:
+  type: ClusterIP
+  ports:
+    - targetPort: 3000
+      port: 3000
+  selector:
+    app: blockscout-frontend
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: ingress-blockscout-frontend
+  namespace: "{{ dex_service_namespace }}"
+  annotations:
+    saga.xyz/ingress-protocol: "explorer"
+spec:
+  ingressClassName: nginx
+  rules:
+    - host: "{{ dex_vanity_name }}.explorer.{{ explorer_url_suffix }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: blockscout-frontend
+                port:
+                  number: 3000
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blockscout-backend
+  namespace: "{{ dex_service_namespace }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blockscout-backend
+  template:
+    metadata:
+      labels:
+        app: blockscout-backend
+    spec:
+      containers:
+        - name: blockscout-backend
+          image: blockscout/blockscout:latest
+          ports:
+            - containerPort: 4000
+          envFrom:
+            - configMapRef:
+                name: blockscout-backend-configmap
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blockscout-frontend
+  namespace: "{{ dex_service_namespace }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blockscout-frontend
+  template:
+    metadata:
+      labels:
+        app: blockscout-frontend
+    spec:
+      containers:
+        - name: blockscout-frontend
+          image: blockscout/frontend:latest
+          ports:
+            - containerPort: 3000
+          envFrom:
+            - configMapRef:
+                name: blockscout-frontend-configmap
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: blockscout-stats
+  namespace: "{{ dex_service_namespace }}"
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: blockscout-stats
+  template:
+    metadata:
+      labels:
+        app: blockscout-stats
+    spec:
+      containers:
+        - name: blockscout-stats
+          image: blockscout/stats:latest
+          ports:
+            - containerPort: 8051
+          envFrom:
+            - configMapRef:
+                name: blockscout-stats-configmap
