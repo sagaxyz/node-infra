@@ -1,0 +1,63 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ibc-tester
+  namespace: {{ dex_service_namespace }}
+  labels:
+    app: ibc-tester
+spec:
+  selector:
+    matchLabels:
+      app: ibc-tester
+  template:
+    metadata:
+      labels:
+        app: ibc-tester
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: ibc-tester
+        image: sagaxyz/ibc-tester:0.0.1
+        resources:
+          requests:
+            cpu: 10m
+            memory: 5Mi
+          limits:
+            cpu: 20m
+            memory: 50Mi
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: CHAIN_A_TO_B_CHANNEL
+            value: "channel-4"
+          - name: CHAIN_B_TO_A_CHANNEL
+            value: "channel-10"
+          - name: CHAIN_A_ID
+            value: "ssc-testnet-2"
+          - name: CHAIN_B_ID
+            value: "hub_5464111-1"
+          - name: CHAIN_A_ENDPOINT
+            value: "https://testnet2-keplr.sagarpc.io:443"
+          - name: CHAIN_B_ENDPOINT
+            value: "https://hub-5464111-1-cosmosrpc.jsonrpc.testnet.sagarpc.io:443"
+          - name: CHAIN_A_DENOM
+            value: "utsaga"
+          - name: CHAIN_B_IBC_DENOM
+            value: "ibc/9E86C3BFFC8FCB03042A05A47C320E3F5834AE79B63D589FC78CBF8511B8F07F"
+          - name: CHAIN_B_NATIVE_DENOM
+            value: "lilc"
+          - name: CHAIN_A_BINARY
+            value: "sscd"
+          - name: CHAIN_B_BINARY
+            value: "sagaosd"
+          - name: CHAIN_A_FEE_AMOUNT
+            value: "20"
+          - name: CHAIN_B_FEE_AMOUNT
+            value: "20"
+          - name: CHAIN_A_MNEMONIC
+            value: {{ ssc_testnet_mnemonic }}
+          - name: CHAIN_B_MNEMONIC
+            value: {{ hub_testnet_mnemonic }}
+          - name: KEYPASSWD
+            value: "{{ keychain_password }}"
