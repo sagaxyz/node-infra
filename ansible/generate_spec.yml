@@ -8,3 +8,5 @@
   when: elasticsearch_info is defined
 - import_playbook: playbooks/metrics/deploy-alerts.yml
   when: alertmanager is defined
+- import_playbook: playbooks/lil/main.yml
+  when: dex_balance_monitor_enabled
