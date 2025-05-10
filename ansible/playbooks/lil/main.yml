@@ -14,12 +14,6 @@
         state: directory
         mode: '0744'
 
-    - name: Generate Dex Sidecar spec
-      ansible.builtin.template:
-        src: config/dex-sidecar.yml.j2
-        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-sidecar.yml
-        mode: '0644'
-
     - name: Generate Cosmos Balance Exporter specs
       ansible.builtin.template:
         src: config/cosmos-balance-exporter.yml.j2

@@ -2,14 +2,23 @@
   gather_facts: false
 
   vars:
+    rpc_url_suffixes: "{{ [rpc_generic_url_suffix, url_suffix] if rpc_generic_url_suffix is defined else [url_suffix] }}"
     dex_chain_namespace: saga-{{ dex_chain_id | replace('_', '-') }}
-    dex_service_namespace: "{{ 'sagasrv-dex' if dex_explorer_enabled else undefined }}"
+    dex_service_namespace: sagasrv-dex
+    dex_vanity_name: "{{ dex_chain_id.split('_')[0] }}"
+    dex_public_rpc: "https://{{ dex_vanity_name }}.jsonrpc.{{ rpc_generic_url_suffix if rpc_generic_url_suffix is defined else url_suffix }}"
+    dex_explorer_domain: "{{ explorer_generic_url_suffix if explorer_generic_url_suffix is defined else explorer_url_suffix }}"
+    dex_explorer_frontend_url: "{{ dex_vanity_name }}.{{ dex_explorer_domain }}"
+    dex_explorer_backend_url: "api-{{ dex_explorer_frontend_url }}"
+    dex_explorer_stats_url: "stats-{{ dex_explorer_frontend_url }}"
+    blockscout_frontend_version: "{{ dex_explorer.images.frontend.split(':')[1] }}"
+    blockscout_backend_version: "{{ dex_explorer.images.backend.split(':')[1] }}"
 
   tasks:
-    - name: Fail if dex_explorer_enabled is false or undefined
+    - name: Fail if dex_explorer.enabled is false or undefined
       ansible.builtin.fail:
-        msg: "dex_explorer_enabled must be true to deploy dex explorer services"
-      when: not dex_explorer_enabled | default(false) | bool
+        msg: "dex_explorer.enabled must be true to deploy dex explorer services"
+      when: dex_explorer is undefined or not dex_explorer.enabled
 
     - name: Create a directory if it does not exist
       ansible.builtin.file:
@@ -22,8 +31,6 @@
         src: config/dex-explorer.yml.j2
         dest: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-explorer.yml
         mode: '0644'
-      vars:
-        rpc_url_suffixes: "{{ [rpc_generic_url_suffix, url_suffix] if rpc_generic_url_suffix is defined else [url_suffix] }}"
 
     - name: Deploy Dex Explorer services
       kubernetes.core.k8s:

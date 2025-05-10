@@ -58,7 +58,7 @@ metadata:
   name: ethproxy
   namespace: {{ dex_service_namespace }}
 spec:
-  replicas: 2
+  replicas: 3
   selector:
     matchLabels:
       app: ethproxy
@@ -90,11 +90,11 @@ spec:
           mountPath: /etc/saga/ethproxy
         resources:
           requests:
-            memory: "4Gi"
-            cpu: "2"
-          limits:
-            memory: "8Gi"
+            memory: "6Gi"
             cpu: "4"
+          limits:
+            memory: "12Gi"
+            cpu: "7"
       volumes:
       - name: config-volume
         configMap:
@@ -405,6 +405,8 @@ spec:
               value: "nothing"
             - name: SYNC_RPC
               value: ""
+            - name: OPTS
+              value: "--json-rpc.api eth,txpool,personal,net,debug,web3 --api.enabled-unsafe-cors --api.enable --grpc.address 0.0.0.0:9090 --json-rpc.address 0.0.0.0:8545 --json-rpc.enable true --json-rpc.api true --json-rpc.ws-address 0.0.0.0:8546 --json-rpc.gas-cap 50000000 --evm.tracer=struct"
           ports:
             - containerPort: 26657
             - containerPort: 26656
@@ -426,11 +428,11 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              memory: "1Gi"
-              cpu: "1"
-            limits:
-              memory: "4Gi"
+              memory: "5Gi"
               cpu: "2"
+            limits:
+              memory: "8Gi"
+              cpu: "4"
           volumeMounts:
             - name: data-volume
               mountPath: "/root/.sagaosd/data"

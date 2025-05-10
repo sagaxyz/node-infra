@@ -10,6 +10,55 @@ data:
   ETHEREUM_JSONRPC_WS_URL: "ws://chainlet.{{ dex_chain_namespace }}.svc.cluster.local:8546"
   SECRET_KEY_BASE: "{{ explorer_secret_key_base }}"
   ECTO_USE_SSL: "false"
+  CHAIN_ID: "{{ dex_chain_id }}"
+  JSON_RPC: "{{ dex_public_rpc }}"
+  ETHEREUM_JSONRPC_TRACE_URL: "http://chainlet.{{ dex_chain_namespace }}.svc.cluster.local:8545"
+  NETWORK: "Saga"
+  SUBNETWORK: "{{ dex_vanity_name }}"
+  DISABLE_WEBAPP: "true"
+  INDEXER_INTERNAL_TRANSACTIONS_TRACER_TYPE: "opcode"
+
+  DISABLE_MARKET: "true"
+  MARKET_COIN_FETCHER_ENABLED: "false"
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: blockscout-frontend-configmap
+  namespace: "{{ dex_service_namespace }}"
+data:
+  NEXT_PUBLIC_APP_HOST: "{{ dex_explorer_frontend_url }}"
+  NEXT_PUBLIC_APP_PORT: "443"
+  NEXT_PUBLIC_NETWORK_NAME: "{{ dex_vanity_name }}"
+  NEXT_PUBLIC_NETWORK_SHORT_NAME: "{{ dex_vanity_name }}"
+  NEXT_PUBLIC_NETWORK_ID: "{{ dex_chain_id.split('_')[1].split('-')[0] }}"
+  NEXT_PUBLIC_NETWORK_RPC_URL: "{{ dex_public_rpc }}"
+  NEXT_PUBLIC_HIDE_INDEXING_ALERT_BLOCKS: "true"
+  NEXT_PUBLIC_NETWORK_VERIFICATION_TYPE: "validation"
+  NEXT_PUBLIC_IS_TESTNET: "{{ is_testnet }}"
+  NEXT_PUBLIC_API_HOST: "{{ dex_explorer_backend_url }}"
+  NEXT_PUBLIC_HOMEPAGE_CHARTS: "['daily_txs']"
+  NEXT_PUBLIC_HOMEPAGE_STATS: "['total_blocks', 'average_block_time', 'total_txs', 'wallet_addresses']"
+  NEXT_PUBLIC_HOMEPAGE_HERO_BANNER_CONFIG: "{ 'background': ['linear-gradient(280deg, rgba(255,255,255,1) 0%, rgba(102,235,227,1) 25%, rgba(36,226,215,1) 50%, rgba(22,136,129,1) 75%, rgba(25,9,51,1) 100%);']}"
+  NEXT_PUBLIC_NETWORK_LOGO_DARK: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_network_logo_dark.svg"
+  NEXT_PUBLIC_NETWORK_LOGO: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_network_logo.svg"
+  NEXT_PUBLIC_NETWORK_ICON: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_network_icon.svg"
+  NEXT_PUBLIC_NETWORK_ICON_DARK: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_network_icon_dark.svg"
+  NEXT_PUBLIC_OTHER_LINKS: "[{'url':'https://oku.trade/app/saga','text':'Oku'}, {'url':'https://app.squidrouter.com/?chains=ssc-1%2C5464&tokens=usaga%2C0xa19377761fed745723b90993988e04d641c2cffe','text':'Squid'}]"
+  NEXT_PUBLIC_FOOTER_LINKS: "https://saga-public-assets.s3.amazonaws.com/blockscout/configs/footer_links.json"
+  NEXT_PUBLIC_PROMOTE_BLOCKSCOUT_IN_TITLE: "false"
+  NEXT_PUBLIC_OG_DESCRIPTION: "Saga is more than your own dedicated and configurable blockchain - it’s a vibrant community where innovators are collaborating, learning, sharing, and creating the future together. Welcome to Saga, welcome to the Multiverse."
+  NEXT_PUBLIC_OG_IMAGE_URL: "https://saga-public-assets.s3.amazonaws.com/blockscout/images/public_og_image.jpg"
+  NEXT_PUBLIC_GAS_TRACKER_ENABLED: "false"
+  NEXT_PUBLIC_WALLET_CONNECT_PROJECT_ID: "{{ wallet_id_connect_client_id }}"
+  NEXT_PUBLIC_AD_BANNER_PROVIDER: "none"
+  NEXT_PUBLIC_AD_TEXT_PROVIDER: "none"
+  NEXT_PUBLIC_HAS_BEACON_CHAIN: "false"
+  NEXT_PUBLIC_MARKETPLACE_ENABLED: "false"
+  NEXT_PUBLIC_STATS_API_HOST: "https://{{ dex_explorer_stats_url }}"
+  NEXT_PUBLIC_NETWORK_CURRENCY_NAME: "gas"
+  NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: "gas"
+  NEXT_PUBLIC_NETWORK_CURRENCY_DECIMALS: "18"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -37,7 +86,7 @@ spec:
       restartPolicy: Always
       containers:
         - name: blockscout-indexer
-          image: ghcr.io/blockscout/blockscout:8.0.1
+          image: {{ dex_explorer.images.indexer }}
           resources:
             requests:
               cpu: "2"
@@ -60,8 +109,6 @@ spec:
           env:
             - name: APPLICATION_MODE
               value: "indexer"
-            - name: DISABLE_WEBAPP
-              value: "true"
             - name: API_V1_READ_METHODS_DISABLED
               value: "true"
             - name: API_V1_WRITE_METHODS_DISABLED
@@ -70,10 +117,6 @@ spec:
               value: "true"
             - name: API_V2_ENABLED
               value: "false"
-            - name: CHAIN_ID
-              value: "{{ dex_chain_id }}"
-            - name: JSON_RPC
-              value: "https://sagaevm.jsonrpc.{{ rpc_url_suffixes[0] }}"
             - name: INDEXER_MEMORY_LIMIT
               value: "10Gi"
             - name: ETHEREUM_JSONRPC_DEBUG_TRACE_TRANSACTION_TIMEOUT
@@ -81,11 +124,11 @@ spec:
             - name: INDEXER_TX_ACTIONS_ENABLE
               value: "true"
             - name: INDEXER_TX_ACTIONS_UNISWAP_V3_FACTORY_CONTRACT
-              value: "0x454050C4c9190390981Ac4b8d5AFcd7aC65eEffa"
+              value: "{{ uniswap_v3_factory_contract | default('') }}"
             - name: INDEXER_TX_ACTIONS_UNISWAP_V3_NFT_POSITION_MANAGER_CONTRACT
-              value: "0xdD489C75be1039ec7d843A6aC2Fd658350B067Cf"
-            - name: INDEXER_INTERNAL_TRANSACTIONS_TRACER_TYPE
-              value: "opcode"
+              value: "{{ uniswap_v3_nft_position_manager_contract | default('') }}"
+            - name: ETHEREUM_JSONRPC_DEBUG_TRACE_TRANSACTION_TIMEOUT
+              value: "20s"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -108,7 +151,8 @@ spec:
         kubernetes.io/os: linux
       containers:
         - name: postgres
-          image: postgres:14
+          image: {{ dex_explorer.images.postgres }}
+          args: ["-c", "max_connections=500"]
           ports:
             - containerPort: 5432
           env:
@@ -164,25 +208,6 @@ spec:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: blockscout-frontend-configmap
-  namespace: "{{ dex_service_namespace }}"
-data:
-  NEXT_PUBLIC_APP_HOST: "{{ dex_vanity_name }}.explorer.{{ explorer_url_suffix }}"
-  NEXT_PUBLIC_NETWORK_RPC_URL: "https://{{ dex_vanity_name }}.jsonrpc.{{ explorer_url_suffix }}"
-  NEXT_PUBLIC_APP_PORT: "443"
-  NEXT_PUBLIC_NETWORK_NAME: "{{ dex_vanity_name }}"
-  NEXT_PUBLIC_NETWORK_SHORT_NAME: "{{ dex_vanity_name }}"
-  NEXT_PUBLIC_NETWORK_ID: "{{ dex_chain_id }}"
-  NEXT_PUBLIC_NETWORK_CURRENCY_NAME: "{{ coin_denom }}"
-  NEXT_PUBLIC_NETWORK_CURRENCY_SYMBOL: "{{ coin_denom }}"
-  NEXT_PUBLIC_NETWORK_VERIFICATION_TYPE: "validation"
-  NEXT_PUBLIC_IS_TESTNET: "{{ explorer_is_testnet }}"
-  NEXT_PUBLIC_API_HOST: "api-{{ dex_vanity_name }}.explorer.{{ explorer_url_suffix }}"
-  NEXT_PUBLIC_STATS_API_HOST: "https://stats-{{ dex_vanity_name }}.explorer.{{ explorer_url_suffix }}"
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: blockscout-stats-configmap
   namespace: "{{ dex_service_namespace }}"
 data:
@@ -199,6 +224,7 @@ data:
   STATS__METRICS__ENABLED: "false"
   STATS__METRICS__ADDR: "0.0.0.0:6060"
   STATS__METRICS__ROUTE: "/metrics"
+  STATS__BLOCKSCOUT_API_URL: "http://blockscout-backend:4000"
 ---
 apiVersion: v1
 kind: Service
@@ -255,7 +281,7 @@ metadata:
 spec:
   ingressClassName: nginx
   rules:
-    - host: "{{ dex_vanity_name }}.explorer.{{ explorer_url_suffix }}"
+    - host: "{{ dex_explorer_frontend_url }}"
       http:
         paths:
           - path: /
@@ -272,11 +298,14 @@ metadata:
   name: ingress-blockscout-backend
   namespace: "{{ dex_service_namespace }}"
   annotations:
-    saga.xyz/ingress-protocol: "explorer"
+    nginx.org/websocket-services: blockscout-backend
+    nginx.ingress.kubernetes.io/proxy-body-size: "10m"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header Access-Control-Allow-Headers *;
 spec:
   ingressClassName: nginx
   rules:
-    - host: "api-{{ dex_vanity_name }}.explorer.{{ explorer_url_suffix }}"
+    - host: "{{ dex_explorer_backend_url }}"
       http:
         paths:
           - path: /
@@ -293,11 +322,12 @@ metadata:
   name: ingress-blockscout-stats
   namespace: "{{ dex_service_namespace }}"
   annotations:
-    saga.xyz/ingress-protocol: "explorer"
+    nginx.ingress.kubernetes.io/configuration-snippet: |
+      add_header Access-Control-Allow-Origin *;
 spec:
   ingressClassName: nginx
   rules:
-    - host: "stats-{{ dex_vanity_name }}.explorer.{{ explorer_url_suffix }}"
+    - host: "{{ dex_explorer_stats_url }}"
       http:
         paths:
           - path: /
@@ -325,181 +355,42 @@ spec:
     spec:
       containers:
         - name: blockscout-backend
-          image: ghcr.io/blockscout/blockscout:8.0.1
+          image: {{ dex_explorer.images.backend }}
+          command:
+            - /bin/sh
+          args:
+            - -c
+            - bin/blockscout start
           ports:
             - containerPort: 4000
           envFrom:
             - configMapRef:
                 name: blockscout-shared-configmap
           env:
-            - name: API_V2_ENABLED
-              value: "true"
-            - name: PERMANENT_DARK_MODE_ENABLED
-              value: "true"
-            - name: ETHEREUM_JSONRPC_VARIANT
-              value: "geth"
-            - name: ETHEREUM_JSONRPC_GETH_TRACE_BY_BLOCK
-              value: "false"
-            - name: ETHEREUM_JSONRPC_DISABLE_ARCHIVE_BALANCES
-              value: "false"
-            - name: IPC_PATH
-              value: ""
-            - name: NETWORK_PATH
-              value: "/"
-            - name: BLOCKSCOUT_PROTOCOL
-              value: ""
-            - name: BLOCKSCOUT_VERSION
-              value: "8.0.1"
-            - name: EMISSION_FORMAT
-              value: "DEFAULT"
-            - name: RELEASE_LINK
-              value: ""
-            - name: FOOTER_LINK_TO_OTHER_EXPLORERS
-              value: "false"
-            - name: SUPPORTED_CHAINS
-              value: "{ }"
-            - name: CACHE_BLOCK_COUNT_PERIOD
-              value: "60"
-            - name: CACHE_TXS_COUNT_PERIOD
-              value: "300"
-            - name: CACHE_ADDRESS_SUM_PERIOD
-              value: "3600"
-            - name: CACHE_TOTAL_GAS_USAGE_PERIOD
-              value: "3600"
-            - name: CACHE_ADDRESS_TRANSACTIONS_GAS_USAGE_COUNTER_PERIOD
-              value: "1800"
-            - name: CACHE_TOKEN_HOLDERS_COUNTER_PERIOD
-              value: "3600"
-            - name: CACHE_TOKEN_TRANSFERS_COUNTER_PERIOD
-              value: "3600"
-            - name: CACHE_ADDRESS_WITH_BALANCES_UPDATE_INTERVAL
-              value: "1800"
-            - name: CACHE_AVERAGE_BLOCK_PERIOD
-              value: "1800"
-            - name: CACHE_MARKET_HISTORY_PERIOD
-              value: "21600"
-            - name: CACHE_ADDRESS_TRANSACTIONS_COUNTER_PERIOD
-              value: "1800"
-            - name: CACHE_ADDRESS_TOKENS_USD_SUM_PERIOD
-              value: "1800"
-            - name: CACHE_ADDRESS_TOKEN_TRANSFERS_COUNTER_PERIOD
-              value: "1800"
-            - name: TOKEN_METADATA_UPDATE_INTERVAL
-              value: "172800"
-            - name: UNCLES_IN_AVERAGE_BLOCK_TIME
-              value: "false"
-            - name: API_V1_READ_METHODS_DISABLED
-              value: "false"
-            - name: API_V1_WRITE_METHODS_DISABLED
-              value: "false"
+            - name: APPLICATION_MODE
+              value: "api"
             - name: DISABLE_INDEXER
-              value: "false"
-            - name: DISABLE_REALTIME_INDEXER
-              value: "false"
-            - name: INDEXER_DISABLE_TOKEN_INSTANCE_REALTIME_FETCHER
-              value: "false"
-            - name: INDEXER_DISABLE_TOKEN_INSTANCE_RETRY_FETCHER
-              value: "false"
-            - name: INDEXER_DISABLE_TOKEN_INSTANCE_SANITIZE_FETCHER
-              value: "false"
-            - name: INDEXER_DISABLE_PENDING_TRANSACTIONS_FETCHER
-              value: "false"
-            - name: INDEXER_DISABLE_INTERNAL_TRANSACTIONS_FETCHER
-              value: "false"
-            - name: WOBSERVER_ENABLED
-              value: "false"
-            - name: SHOW_ADDRESS_MARKETCAP_PERCENTAGE
               value: "true"
-            - name: CHECKSUM_ADDRESS_HASHES
-              value: "true"
-            - name: CHECKSUM_FUNCTION
-              value: "eth"
-            - name: DISABLE_EXCHANGE_RATES
-              value: "true"
-            - name: DISABLE_KNOWN_TOKENS
-              value: "false"
-            - name: TXS_STATS_ENABLED
-              value: "true"
-            - name: SHOW_PRICE_CHART_LEGEND
-              value: "false"
-            - name: SHOW_TXS_CHART
-              value: "true"
-            - name: HISTORY_FETCH_INTERVAL
-              value: "30"
-            - name: TXS_HISTORIAN_INIT_LAG
-              value: "0"
-            - name: TXS_STATS_DAYS_TO_COMPILE_AT_INIT
-              value: "10"
-            - name: COIN_BALANCE_HISTORY_DAYS
-              value: "90"
-            - name: APPS_MENU
-              value: "false"
-            - name: EXTERNAL_APPS
-              value: "[ ]"
-            - name: SHOW_MAINTENANCE_ALERT
-              value: "false"
-            - name: MAINTENANCE_ALERT_MESSAGE
-              value: ""
-            - name: CUSTOM_CONTRACT_ADDRESSES_TEST_TOKEN
-              value: ""
-            - name: SOURCIFY_INTEGRATION_ENABLED
-              value: "false"
-            - name: SOURCIFY_SERVER_URL
-              value: ""
-            - name: SOURCIFY_REPO_URL
-              value: ""
-            - name: MAX_SIZE_UNLESS_HIDE_ARRAY
-              value: "50"
-            - name: HIDE_BLOCK_MINER
-              value: "false"
+            - name: BLOCKSCOUT_HOST
+              value: "{{ dex_explorer_backend_url }}"
+            - name: BLOCKSCOUT_PROTOCOL
+              value: "https"
+            - name: WEBAPP_URL
+              value: "https://{{ dex_explorer_frontend_url}}"
+            - name: LOGO
+              value: "/images/saga_logo.svg"
+            - name: FOOTER_LOGO
+              value: "/images/saga_logo.svg"
+            - name: SHOW_TESTNET_LABEL
+              value: "{{ is_testnet }}"
+            - name: BLOCKSCOUT_VERSION
+              value: "{{ blockscout_backend_version }}"
+            - name: FOOTER_CHAT_LINK
+              value: "https://discord.com/channels/950275843949736006"
+            - name: FOOTER_GITHUB_LINK
+              value: "http://github.com/sagaxyz"
             - name: DISPLAY_TOKEN_ICONS
-              value: "false"
-            - name: SHOW_TENDERLY_LINK
-              value: "false"
-            - name: TENDERLY_CHAIN_PATH
-              value: ""
-            - name: MAX_STRING_LENGTH_WITHOUT_TRIMMING
-              value: "2040"
-            - name: RE_CAPTCHA_SECRET_KEY
-              value: ""
-            - name: RE_CAPTCHA_CLIENT_KEY
-              value: ""
-            - name: JSON_RPC
-              value: "https://sagaevm.jsonrpc.{{ rpc_url_suffixes[0] }}"
-            - name: ETHEREUM_JSONRPC_TRACE_URL
-              value: "http://chainlet.{{ dex_chain_namespace }}.svc.cluster.local:8545"
-            - name: API_RATE_LIMIT
-              value: "50"
-            - name: API_RATE_LIMIT_BY_KEY
-              value: "50"
-            - name: API_RATE_LIMIT_BY_WHITELISTED_IP
-              value: "50"
-            - name: API_RATE_LIMIT_WHITELISTED_IPS
-              value: ""
-            - name: API_RATE_LIMIT_STATIC_API_KEY
-              value: ""
-            - name: FETCH_REWARDS_WAY
-              value: "trace_block"
-            - name: MICROSERVICE_SC_VERIFIER_ENABLED
               value: "true"
-            - name: MICROSERVICE_SC_VERIFIER_URL
-              value: "https://eth-bytecode-db.services.blockscout.com/"
-            - name: MICROSERVICE_SC_VERIFIER_TYPE
-              value: "eth_bytecode_db"
-            - name: MICROSERVICE_VISUALIZE_SOL2UML_ENABLED
-              value: "false"
-            - name: MICROSERVICE_VISUALIZE_SOL2UML_URL
-              value: ""
-            - name: MICROSERVICE_SIG_PROVIDER_ENABLED
-              value: "false"
-            - name: MICROSERVICE_SIG_PROVIDER_URL
-              value: ""
-            - name: RE_CAPTCHA_DISABLED
-              value: "true"
-            - name: HIDE_BLOCK_MINER
-              value: "true"
-            - name: INDEXER_HIDE_INDEXING_PROGRESS_ALERT
-              value: "false"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -518,7 +409,7 @@ spec:
     spec:
       containers:
         - name: blockscout-frontend
-          image: ghcr.io/blockscout/frontend:8.0.1
+          image: {{ dex_explorer.images.frontend }}
           ports:
             - containerPort: 3000
           envFrom:
@@ -542,7 +433,7 @@ spec:
     spec:
       containers:
         - name: blockscout-stats
-          image: ghcr.io/blockscout/stats:8.0.1
+          image: {{ dex_explorer.images.stats }}
           ports:
             - containerPort: 8051
           envFrom:
