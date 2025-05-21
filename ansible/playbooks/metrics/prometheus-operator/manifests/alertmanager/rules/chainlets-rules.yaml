@@ -34,7 +34,7 @@ spec:
         summary: No blocks produced in the last minute
       expr: delta(cometbft_consensus_height{app="chainlet"}[1m]) < 1
       labels:
-        severity: critical
+        severity: warning
     - alert: ChainletAverageBlockTimeTooLong
       annotations:
         description: Average block time for *{{ $labels.chainId }}* is *{{ $value }}* seconds
