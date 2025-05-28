@@ -6,6 +6,7 @@
     dex_chain_namespace: saga-{{ dex_chain_id | replace('_', '-') }}
     dex_service_namespace: sagasrv-dex
     dex_vanity_name: "{{ dex_chain_id.split('_')[0] }}"
+    dex_chain_id_number: "{{ dex_chain_id.split('_')[1].split('-')[0] }}"
     dex_public_rpc: "https://{{ dex_vanity_name }}.jsonrpc.{{ rpc_generic_url_suffix if rpc_generic_url_suffix is defined else url_suffix }}"
     dex_explorer_domain: "{{ explorer_generic_url_suffix if explorer_generic_url_suffix is defined else explorer_url_suffix }}"
     dex_explorer_frontend_url: "{{ dex_vanity_name }}.{{ dex_explorer_domain }}"

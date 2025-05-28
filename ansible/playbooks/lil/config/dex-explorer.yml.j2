@@ -10,7 +10,7 @@ data:
   ETHEREUM_JSONRPC_WS_URL: "ws://chainlet.{{ dex_chain_namespace }}.svc.cluster.local:8546"
   SECRET_KEY_BASE: "{{ explorer_secret_key_base }}"
   ECTO_USE_SSL: "false"
-  CHAIN_ID: "{{ dex_chain_id }}"
+  CHAIN_ID: "{{ dex_chain_id_number }}"
   JSON_RPC: "{{ dex_public_rpc }}"
   ETHEREUM_JSONRPC_TRACE_URL: "http://chainlet.{{ dex_chain_namespace }}.svc.cluster.local:8545"
   NETWORK: "Saga"
