@@ -3,6 +3,7 @@ node_rpc: "tcp://chainlet-ro:26657"
 node_json_rpc: "http://chainlet-ro:8545"
 chain_id: "{{ dex_chain_id }}"
 account_address_prefix: "saga"
+json_rpc_request_timeout: "10s"
 server:
   json_rpc:
     address: "0.0.0.0:8545"
@@ -11,7 +12,7 @@ server:
     rate_limit:
       enabled: true
       ip_header: "True-Client-IP"
-      rate: 100_000
+      rate: 35_000
       burst: 10_000_000
   prometheus:
     enabled: true
@@ -23,6 +24,6 @@ services:
       - "redacted"
     broadcast_node_rpc: "tcp://chainlet-rw:26657"
     param_fetch_interval: "3s"
-    gas_limit: "7000000"
-  proxy:
-    request_timeout: "10s"
+    check_gas:
+      enabled: true
+      max_delta: 1.0
