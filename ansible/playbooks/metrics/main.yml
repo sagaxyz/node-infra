@@ -84,3 +84,10 @@
         dest: ~/.ansible/deployments/{{ eks_cluster_name }}/prometheus-operator/dashboards/kustomization.yaml
         mode: '0644'
       when: "deployment_enabled"
+
+    - name: Render PrometheusRule for IBC failures
+      ansible.builtin.template:
+        src: prometheus-operator/manifests/alertmanager/rules/ibc-tester-rules.yaml.j2
+        dest: prometheus-operator/manifests/alertmanager/rules/ibc-tester-rules.yaml
+        mode: '0644'
+      when: ibc_tester_enabled is defined

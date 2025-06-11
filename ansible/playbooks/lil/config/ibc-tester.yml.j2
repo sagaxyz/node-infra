@@ -1,0 +1,131 @@
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ibc-tester-ssc-hub
+  namespace: sagasrv-metrics
+  labels:
+    app: ibc-tester-ssc-hub
+spec:
+  selector:
+    matchLabels:
+      app: ibc-tester-ssc-hub
+  template:
+    metadata:
+      labels:
+        app: ibc-tester-ssc-hub
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: ibc-tester-ssc-hub
+        image: sagaxyz/ibc-tester:0.0.3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 50Mi
+          limits:
+            cpu: 200m
+            memory: 100Mi
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: CHAIN_A_TO_B_CHANNEL
+            value: {{ ssc_to_hub_channel }}
+          - name: CHAIN_B_TO_A_CHANNEL
+            value: {{ hub_to_ssc_channel }}
+          - name: CHAIN_A_ID
+            value: {{ ssc_chain_id }}
+          - name: CHAIN_B_ID
+            value: {{ hub_chain_id }}
+          - name: CHAIN_A_ENDPOINT
+            value: {{ ssc_endpoint }}
+          - name: CHAIN_B_ENDPOINT
+            value: {{ hub_endpoint }}
+          - name: CHAIN_A_DENOM
+            value: {{ ssc_denom }}
+          - name: CHAIN_B_DENOM
+            value: {{ hub_denom }}
+          - name: CHAIN_A_IBC_DENOM
+            value: {{ ssc_ibc_denom_in_hub }}
+          - name: CHAIN_B_IBC_DENOM
+            value: {{ hub_ibc_denom_in_ssc }}
+          - name: CHAIN_A_BINARY
+            value: "sscd"
+          - name: CHAIN_B_BINARY
+            value: "sagaosd"
+          - name: CHAIN_A_FEE_AMOUNT
+            value: "20"
+          - name: CHAIN_B_FEE_AMOUNT
+            value: "20"
+          - name: CHAIN_A_MNEMONIC
+            value: {{ ssc_mnemonic }}
+          - name: CHAIN_B_MNEMONIC
+            value: {{ hub_to_ssc_mnemonic }}
+          - name: KEYPASSWD
+            value: "{{ keychain_password }}"
+---
+kind: Deployment
+apiVersion: apps/v1
+metadata:
+  name: ibc-tester-hub-dex
+  namespace: sagasrv-metrics
+  labels:
+    app: ibc-tester-hub-dex
+spec:
+  selector:
+    matchLabels:
+      app: ibc-tester-hub-dex
+  template:
+    metadata:
+      labels:
+        app: ibc-tester-hub-dex
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "8080"
+    spec:
+      containers:
+      - name: ibc-tester-hub-dex
+        image: sagaxyz/ibc-tester:0.0.3
+        resources:
+          requests:
+            cpu: 100m
+            memory: 50Mi
+          limits:
+            cpu: 200m
+            memory: 100Mi
+        imagePullPolicy: IfNotPresent
+        env:
+          - name: CHAIN_A_TO_B_CHANNEL
+            value: {{ hub_to_dex_channel }}
+          - name: CHAIN_B_TO_A_CHANNEL
+            value: {{ dex_to_hub_channel }}
+          - name: CHAIN_A_ID
+            value: {{ hub_chain_id }}
+          - name: CHAIN_B_ID
+            value: {{ dex_chain_id }}
+          - name: CHAIN_A_ENDPOINT
+            value: {{ hub_endpoint }}
+          - name: CHAIN_B_ENDPOINT
+            value: {{ dex_endpoint }}
+          - name: CHAIN_A_DENOM
+            value: {{ hub_denom }}
+          - name: CHAIN_B_DENOM
+            value: {{ dex_denom }}
+          - name: CHAIN_A_IBC_DENOM
+            value: {{ dex_ibc_denom_in_hub }}
+          - name: CHAIN_B_IBC_DENOM
+            value: {{ hub_ibc_denom_in_dex }}
+          - name: CHAIN_A_BINARY
+            value: "sagaosd"
+          - name: CHAIN_B_BINARY
+            value: "sagaosd"
+          - name: CHAIN_A_FEE_AMOUNT
+            value: "20"
+          - name: CHAIN_B_FEE_AMOUNT
+            value: "20"
+          - name: CHAIN_A_MNEMONIC
+            value: {{ hub_to_dex_mnemonic }}
+          - name: CHAIN_B_MNEMONIC
+            value: {{ dex_mnemonic }}
+          - name: KEYPASSWD
+            value: "{{ keychain_password }}"

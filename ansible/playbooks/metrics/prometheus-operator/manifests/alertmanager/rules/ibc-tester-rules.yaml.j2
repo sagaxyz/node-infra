@@ -1,0 +1,73 @@
+apiVersion: monitoring.coreos.com/v1
+kind: PrometheusRule
+metadata:
+  name: ibc-tester-rules
+  namespace: sagasrv-metrics
+spec:
+  groups:
+  - name: ibc-tester-group
+    rules:
+    - alert: SscToHubIbcFailure_{{ ssc_chain_id }}_{{ hub_chain_id }}
+      annotations:
+        summary: "Positive failure rate on {{ ssc_chain_id }} → {{ hub_chain_id }} IBC transfers"
+        description: |
+          Failure rate on {{ ssc_chain_id }} to {{ hub_chain_id }} IBC transfers
+          is positive in the last 10 minutes.
+      expr: >
+        delta(
+          ibc_transfer_exporter{
+            src_chain="{{ ssc_chain_id }}",
+            dst_chain="{{ hub_chain_id }}",
+            status="failure"
+          }[10m]
+        ) > bool 0
+      labels:
+        severity: warning
+    - alert: HubToSscIbcFailure_{{ hub_chain_id }}_{{ ssc_chain_id }}
+      annotations:
+        summary: "Positive failure rate on {{ hub_chain_id }} → {{ ssc_chain_id }} IBC transfers"
+        description: |
+          Failure rate on {{ hub_chain_id }} to {{ ssc_chain_id }} IBC transfers
+          is positive in the last 10 minutes.
+      expr: >
+        delta(
+          ibc_transfer_exporter{
+            src_chain="{{ hub_chain_id }}",
+            dst_chain="{{ ssc_chain_id }}",
+            status="failure"
+          }[10m]
+        ) > bool 0
+      labels:
+        severity: warning
+    - alert: HubToDexIbcFailure_{{ hub_chain_id }}_{{ dex_chain_id }}
+      annotations:
+        summary: "Positive failure rate on {{ hub_chain_id }} → {{ dex_chain_id }} IBC transfers"
+        description: |
+          Failure rate on {{ hub_chain_id }} to {{ dex_chain_id }} IBC transfers
+          is positive in the last 10 minutes.
+      expr: >
+        delta(
+          ibc_transfer_exporter{
+            src_chain="{{ hub_chain_id }}",
+            dst_chain="{{ dex_chain_id }}",
+            status="failure"
+          }[10m]
+        ) > bool 0
+      labels:
+        severity: warning
+    - alert: DexToHubIbcFailure_{{ dex_chain_id }}_{{ hub_chain_id }}
+      annotations:
+        summary: "Positive failure rate on {{ dex_chain_id }} → {{ hub_chain_id }} IBC transfers"
+        description: |
+          Failure rate on {{ dex_chain_id }} to {{ hub_chain_id }} IBC transfers
+          is positive in the last 10 minutes.
+      expr: >
+        delta(
+          ibc_transfer_exporter{
+            src_chain="{{ dex_chain_id }}",
+            dst_chain="{{ hub_chain_id }}",
+            status="failure"
+          }[10m]
+        ) > bool 0
+      labels:
+        severity: warning
