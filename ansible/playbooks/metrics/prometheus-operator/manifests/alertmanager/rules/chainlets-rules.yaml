@@ -13,7 +13,7 @@ spec:
         summary: Jailed validator
       expr: sum(cosmos_validators_jailed{app="cosmos-exporter"}) by (moniker, chainId) > 0
       labels:
-        severity: critical
+        severity: warning
     - alert: ChainletByzantineValidator
       annotations:
         description: Byzantine validator(s) on *{{ $labels.chainId }}* ({{ $value }})

@@ -21,10 +21,16 @@ spec:
           value: info|none
           matchType: =~
     - receiver: slack
-      continue: false
+      continue: true
       matchers:
         - name: severity
           value: warning|critical
+          matchType: =~
+    - receiver: pagerduty
+      continue: false
+      matchers:
+        - name: severity
+          value: critical
           matchType: =~
   receivers:
   - name: 'empty'
@@ -35,3 +41,9 @@ spec:
           name: alertmanager-config
         sendResolved: true
         text: "*[{{ .Status }}] {{ .CommonLabels.alertname }} ({{ .CommonLabels.severity }}):*{{ range .Alerts }}\n- {{ .Annotations.description }}{{ end }}"
+  - name: pagerduty
+    pagerdutyConfigs:
+      - sendResolved: true
+        routingKey:
+          key: pagerduty-routing-key
+          name: alertmanager-config

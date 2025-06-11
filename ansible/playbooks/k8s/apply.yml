@@ -266,6 +266,7 @@
             namespace: sagasrv-metrics
           stringData:
             slack-api-url: "{{ alertmanager.cluster_alerts_slack_url }}"
+            pagerduty-routing-key: "{{ alertmanager.cluster_alerts_pagerduty_routing_key | default('') }}"
       when: alertmanager_enabled
 
     - name: Deploy alertmanager config
