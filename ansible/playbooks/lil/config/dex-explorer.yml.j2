@@ -133,6 +133,8 @@ spec:
               value: "2985520"
             - name: TRACE_FIRST_BLOCK
               value: "2985520"
+            # - name: ETHEREUM_JSONRPC_HTTP_URLS
+            #   value: "http://chainlet-fullnode:8545,http://chainlet{{ dex_chain_namespace }}.svc.cluster.local:8545,https://sagaevm-archive.jsonrpc.sagarpc.io:443"
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -473,6 +475,13 @@ spec:
           name: chainlet
           command: ["bash", "/root/start-node.sh"]
           imagePullPolicy: Always
+          env:
+          - name: GOMEMLIMIT     # Soft limit for *all* Go-managed memory
+            value: "24GiB"       # ~75 % of a 32 GiB pod keeps you clear of the OOM killer
+          - name: GOGC           # (optional) run GC sooner; 100 is default
+            value: "60"
+          - name: GODEBUG        # return free pages to the OS aggressively
+            value: "madvdontneed=1"
           envFrom:
             - configMapRef:
                 name: chainlet-env
@@ -497,10 +506,10 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              memory: "28Gi"
+              memory: "27Gi"
               cpu: "6"
             limits:
-              memory: "31Gi"
+              memory: "29Gi"
               cpu: "7"
           volumeMounts:
             - name: data-volume
@@ -557,6 +566,12 @@ spec:
           env:
             - name: OPTS
               value: "--json-rpc.api eth,txpool,personal,net,debug,web3 --api.enabled-unsafe-cors --api.enable --grpc.address 0.0.0.0:9090 --json-rpc.address 0.0.0.0:8545 --json-rpc.enable true --json-rpc.api true --json-rpc.ws-address 0.0.0.0:8546 --json-rpc.gas-cap 50000000 --evm.tracer=struct"
+            - name: GOMEMLIMIT     # Soft limit for *all* Go-managed memory
+              value: "24GiB"       # ~75 % of a 32 GiB pod keeps you clear of the OOM killer
+            - name: GOGC           # (optional) run GC sooner; 100 is default
+              value: "60"
+            - name: GODEBUG        # return free pages to the OS aggressively
+              value: "madvdontneed=1"
           envFrom:
             - configMapRef:
                 name: chainlet-env
@@ -581,10 +596,10 @@ spec:
             failureThreshold: 3
           resources:
             requests:
-              memory: "28Gi"
+              memory: "27Gi"
               cpu: "6"
             limits:
-              memory: "31Gi"
+              memory: "29Gi"
               cpu: "7"
           volumeMounts:
             - name: data-volume
@@ -619,6 +634,7 @@ data:
 {% filter indent(width=4) %}
     {% include 'includes/start-node.sh' %}
 {% endfilter %}
+
 ---
 apiVersion: v1
 kind: ConfigMap
