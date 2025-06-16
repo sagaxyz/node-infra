@@ -30,25 +30,25 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
           - name: CHAIN_A_TO_B_CHANNEL
-            value: {{ ssc_to_hub_channel }}
+            value: {{ ibc_tester.ssc_to_hub_channel }}
           - name: CHAIN_B_TO_A_CHANNEL
-            value: {{ hub_to_ssc_channel }}
+            value: {{ ibc_tester.hub_to_ssc_channel }}
           - name: CHAIN_A_ID
-            value: {{ ssc_chain_id }}
+            value: {{ ssc.chain_id }}
           - name: CHAIN_B_ID
             value: {{ hub_chain_id }}
           - name: CHAIN_A_ENDPOINT
-            value: {{ ssc_endpoint }}
+            value: {{ ssc.rpc }}
           - name: CHAIN_B_ENDPOINT
-            value: {{ hub_endpoint }}
+            value: {{ ibc_tester.hub_endpoint }}
           - name: CHAIN_A_DENOM
-            value: {{ ssc_denom }}
+            value: {{ ssc.denom }}
           - name: CHAIN_B_DENOM
-            value: {{ hub_denom }}
+            value: {{ ibc_tester.hub_denom }}
           - name: CHAIN_A_IBC_DENOM
-            value: {{ ssc_ibc_denom_in_hub }}
+            value: {{ ibc_tester.ssc_ibc_denom_in_hub }}
           - name: CHAIN_B_IBC_DENOM
-            value: {{ hub_ibc_denom_in_ssc }}
+            value: {{ ibc_tester.hub_ibc_denom_in_ssc }}
           - name: CHAIN_A_BINARY
             value: "sscd"
           - name: CHAIN_B_BINARY
@@ -96,25 +96,25 @@ spec:
         imagePullPolicy: IfNotPresent
         env:
           - name: CHAIN_A_TO_B_CHANNEL
-            value: {{ hub_to_dex_channel }}
+            value: {{ ibc_tester.hub_to_dex_channel }}
           - name: CHAIN_B_TO_A_CHANNEL
-            value: {{ dex_to_hub_channel }}
+            value: {{ ibc_tester.dex_to_hub_channel }}
           - name: CHAIN_A_ID
             value: {{ hub_chain_id }}
           - name: CHAIN_B_ID
             value: {{ dex_chain_id }}
           - name: CHAIN_A_ENDPOINT
-            value: {{ hub_endpoint }}
+            value: {{ ibc_tester.hub_endpoint }}
           - name: CHAIN_B_ENDPOINT
-            value: {{ dex_endpoint }}
+            value: {{ ibc_tester.dex_endpoint }}
           - name: CHAIN_A_DENOM
-            value: {{ hub_denom }}
+            value: {{ ibc_tester.hub_denom }}
           - name: CHAIN_B_DENOM
-            value: {{ dex_denom }}
+            value: {{ ibc_tester.dex_denom }}
           - name: CHAIN_A_IBC_DENOM
-            value: {{ dex_ibc_denom_in_hub }}
+            value: {{ ibc_tester.dex_ibc_denom_in_hub }}
           - name: CHAIN_B_IBC_DENOM
-            value: {{ hub_ibc_denom_in_dex }}
+            value: {{ ibc_tester.hub_ibc_denom_in_dex }}
           - name: CHAIN_A_BINARY
             value: "sagaosd"
           - name: CHAIN_B_BINARY
