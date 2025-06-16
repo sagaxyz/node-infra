@@ -90,4 +90,4 @@
         src: prometheus-operator/manifests/alertmanager/rules/ibc-tester-rules.yaml.j2
         dest: prometheus-operator/manifests/alertmanager/rules/ibc-tester-rules.yaml
         mode: '0644'
-      when: ibc_tester_enabled is defined
+      when: ibc_tester_enabled is defined and ibc_tester_enabled
