@@ -360,4 +360,4 @@
         src: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/ibc-tester.yml
       when:
         - ibc_tester is defined
-        - ibc.tester_enabled | bool
+        - ibc_tester.enabled | bool

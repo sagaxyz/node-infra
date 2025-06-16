@@ -28,4 +28,4 @@
         mode: '0644'
       when:
         - ibc_tester is defined
-        - ibc.tester_enabled | bool
+        - ibc_tester.enabled | bool

@@ -7,33 +7,33 @@ spec:
   groups:
   - name: ibc-tester-group
     rules:
-    - alert: SscToHubIbcFailure_{{ ssc_chain_id }}_{{ hub_chain_id }}
+    - alert: SscToHubIbcFailure_{{ ssc.chain_id }}_{{ hub_chain_id }}
       annotations:
-        summary: "Positive failure rate on {{ ssc_chain_id }} → {{ hub_chain_id }} IBC transfers"
+        summary: "Positive failure rate on {{ ssc.chain_id }} → {{ hub_chain_id }} IBC transfers"
         description: |
-          Failure rate on {{ ssc_chain_id }} to {{ hub_chain_id }} IBC transfers
+          Failure rate on {{ ssc.chain_id }} to {{ hub_chain_id }} IBC transfers
           is positive in the last 10 minutes.
       expr: >
         delta(
           ibc_transfer_exporter{
-            src_chain="{{ ssc_chain_id }}",
+            src_chain="{{ ssc.chain_id }}",
             dst_chain="{{ hub_chain_id }}",
             status="failure"
           }[10m]
         ) > bool 0
       labels:
         severity: warning
-    - alert: HubToSscIbcFailure_{{ hub_chain_id }}_{{ ssc_chain_id }}
+    - alert: HubToSscIbcFailure_{{ hub_chain_id }}_{{ ssc.chain_id }}
       annotations:
-        summary: "Positive failure rate on {{ hub_chain_id }} → {{ ssc_chain_id }} IBC transfers"
+        summary: "Positive failure rate on {{ hub_chain_id }} → {{ ssc.chain_id }} IBC transfers"
         description: |
-          Failure rate on {{ hub_chain_id }} to {{ ssc_chain_id }} IBC transfers
+          Failure rate on {{ hub_chain_id }} to {{ ssc.chain_id }} IBC transfers
           is positive in the last 10 minutes.
       expr: >
         delta(
           ibc_transfer_exporter{
             src_chain="{{ hub_chain_id }}",
-            dst_chain="{{ ssc_chain_id }}",
+            dst_chain="{{ ssc.chain_id }}",
             status="failure"
           }[10m]
         ) > bool 0
