@@ -358,4 +358,6 @@
         kubeconfig: "{{ k8s_kubeconfig }}"
         state: present
         src: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/ibc-tester.yml
-      when: ibc_tester_enabled is defined and ibc_tester_enabled
+      when:
+        - ibc_tester is defined
+        - ibc.tester_enabled | bool
