@@ -16,7 +16,5 @@
 {% endif %}
 
 {% if relayer_enabled %}
-{{ if ge .ChainletStackVersion "0.6.0" }}
 {% include 'includes/relayer.yml.tmpl' %}
-{{ end }}
 {% endif %}

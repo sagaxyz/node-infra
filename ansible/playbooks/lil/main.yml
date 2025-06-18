@@ -20,3 +20,12 @@
         dest: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/cosmos-balance-exporter.yml
         mode: '0644'
       when: dex_feepayers_monitor_targets is defined
+
+    - name: Generate IBC Tester spec
+      ansible.builtin.template:
+        src: config/ibc-tester.yml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/ibc-tester.yml
+        mode: '0644'
+      when:
+        - ibc_tester is defined
+        - ibc_tester.enabled | bool

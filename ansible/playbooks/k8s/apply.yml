@@ -353,3 +353,12 @@
         state: present
         src: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/cosmos-balance-exporter.yml
       when: dex_feepayers_monitor_targets is defined
+
+    - name: Apply IBC Tester spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/ibc-tester.yml
+      when:
+        - ibc_tester is defined
+        - ibc_tester.enabled | bool
