@@ -133,8 +133,8 @@ spec:
               value: "2985520"
             - name: TRACE_FIRST_BLOCK
               value: "2985520"
-            # - name: ETHEREUM_JSONRPC_HTTP_URLS
-            #   value: "http://chainlet-fullnode:8545,http://chainlet{{ dex_chain_namespace }}.svc.cluster.local:8545,https://sagaevm-archive.jsonrpc.sagarpc.io:443"
+            - name: ETHEREUM_JSONRPC_FALLBACK_TRACE_URL
+              value: "http://chainlet-fullnode-tracing:8545"
 ---
 apiVersion: apps/v1
 kind: Deployment
