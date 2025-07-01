@@ -128,7 +128,7 @@ spec:
         kubernetes.io/os: linux
       restartPolicy: Always
       containers:
-        - image: "sagaxyz/sagaos:{{ dex_rpc.chainlet_version }}"
+        - image: "sagaxyz/sagaos:{{ dex_chainlet_version }}"
           name: chainlet
           command: ["bash", "/root/start-node.sh"]
           imagePullPolicy: Always
@@ -209,7 +209,7 @@ spec:
         kubernetes.io/os: linux
       restartPolicy: Always
       containers:
-        - image: "sagaxyz/sagaos:{{ dex_rpc.chainlet_version }}"
+        - image: "sagaxyz/sagaos:{{ dex_chainlet_version }}"
           name: chainlet
           command: ["bash", "/root/start-node.sh"]
           imagePullPolicy: Always
@@ -393,7 +393,7 @@ spec:
         kubernetes.io/os: linux
       restartPolicy: Always
       containers:
-        - image: "sagaxyz/sagaos:{{ dex_rpc.chainlet_version }}"
+        - image: "sagaxyz/sagaos:{{ dex_chainlet_version }}"
           name: chainlet
           command: ["bash", "/root/start-node.sh"]
           imagePullPolicy: Always

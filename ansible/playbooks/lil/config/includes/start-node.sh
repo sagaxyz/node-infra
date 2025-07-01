@@ -83,6 +83,8 @@ UpdateTomlConfigs()
   sed -i 's/^cors_allowed_origins = .*/cors_allowed_origins = ["*"]/g' $CONFIG_FILE
   sed -i 's/^enabled-unsafe-cors =.*/enabled-unsafe-cors = true/g' $APP_CONFIG_FILE
   sed -i 's/^enable-unsafe-cors =.*/enable-unsafe-cors = true/g' $APP_CONFIG_FILE
+  # message sizes
+  sed -i 's/^max-recv-msg-size =.*/max-recv-msg-size = "100000000"/g' $APP_CONFIG_FILE
 
   # allow api (if enabled)
   sed -i 's/^swagger =.*$/swagger = true/g' $APP_CONFIG_FILE
