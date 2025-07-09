@@ -40,10 +40,10 @@ spec:
   resources:
     requests:
       cpu:     1500m
-      memory:  6Gi
+      memory:  16Gi
     limits:
       cpu:     3000m
-      memory:  8Gi
+      memory:  24Gi
   ruleNamespaceSelector: {}
   ruleSelector: {}
   securityContext:
