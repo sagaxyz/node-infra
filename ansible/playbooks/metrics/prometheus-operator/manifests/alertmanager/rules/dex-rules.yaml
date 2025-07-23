@@ -11,13 +11,19 @@ spec:
       annotations:
         description: Dex feepayer balance < 1000gas (*{{ $labels.account_name }} - {{ $labels.address }}*)
         summary: Low dex feepayer balance
-      expr: sum(cosmos_balance{chain_id="sagaevm-5464-1"}) by (account_name, address) / 1000000000000000000 < 1000
+      expr: |
+        sum(cosmos_balance{chain_id="sagaevm-5464-1"}) by (account_name, address) / 1000000000000000000 < 1000
+        OR absent(cosmos_balance{chain_id="sagaevm-5464-1"})
+      for: 15m
       labels:
-        severity: warning
+        severity: critical
     - alert: SscRelayerBalanceLow
       annotations:
         description: Relayer balance < 3 on SSC-1 (*{{ $labels.address_label }} - {{ $labels.address }}*)
         summary: Critically low ssc relayer balance
-      expr: sum(cosmos_balance{chain_id="ssc-1"}) by (account_name, address) / 1000000 < 3
+      expr: |
+        sum(cosmos_balance{chain_id="ssc-1"}) by (account_name, address) / 1000000 < 3
+        OR absent(cosmos_balance{chain_id="ssc-1"})
+      for: 15m
       labels:
-        severity: warning
+        severity: critical
