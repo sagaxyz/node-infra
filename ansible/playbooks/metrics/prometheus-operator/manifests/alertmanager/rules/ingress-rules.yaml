@@ -11,6 +11,18 @@ spec:
       annotations:
         description: Http success rate for {{ $labels.host }} is {{ $value }}%
         summary: Http success rate (non 4|5xx return) below 95%
-      expr: sum(rate(nginx_ingress_controller_requests{controller_pod=~".*",controller_class=~".*",namespace=~".*",ingress=~".*",status!~"[4-5].*"}[2m])) by (host) / sum(rate(nginx_ingress_controller_requests{controller_pod=~".*",controller_class=~".*",namespace=~".*",ingress=~".*"}[2m])) by (host) * 100 < 95
+      expr: |
+        sum(
+          rate(
+            nginx_ingress_controller_requests{controller_pod=~".*",controller_class=~".*",namespace=~".*",ingress=~".*",status!~"[4-5].*"}[5m]
+          )
+        ) by (host) / 
+        sum(
+          rate(
+            nginx_ingress_controller_requests{controller_pod=~".*",controller_class=~".*",namespace=~".*",ingress=~".*"}[5m]
+          )
+        ) by (host) < 0.95
+        OR absent(nginx_ingress_controller_requests)
+      for: 5m
       labels:
         severity: warning

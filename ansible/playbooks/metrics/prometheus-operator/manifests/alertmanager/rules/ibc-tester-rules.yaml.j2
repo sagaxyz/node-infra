@@ -21,6 +21,8 @@ spec:
             status="failure"
           }[10m]
         ) > bool 0
+        OR absent(ibc_transfer_exporter)
+      for: 10m
       labels:
         severity: warning
     - alert: HubToSscIbcFailure_{{ hub_chain_id }}_{{ ssc.chain_id }}
@@ -37,6 +39,8 @@ spec:
             status="failure"
           }[10m]
         ) > bool 0
+        OR absent(ibc_transfer_exporter)
+      for: 10m
       labels:
         severity: warning
     - alert: HubToDexIbcFailure_{{ hub_chain_id }}_{{ dex_chain_id }}
@@ -53,6 +57,8 @@ spec:
             status="failure"
           }[10m]
         ) > bool 0
+        OR absent(ibc_transfer_exporter)
+      for: 10m
       labels:
         severity: warning
     - alert: DexToHubIbcFailure_{{ dex_chain_id }}_{{ hub_chain_id }}
@@ -69,5 +75,7 @@ spec:
             status="failure"
           }[10m]
         ) > bool 0
+        OR absent(ibc_transfer_exporter)
+      for: 10m
       labels:
         severity: warning

@@ -8,37 +8,97 @@ spec:
   - name: spc-group
     rules:
     - alert: SpcJailedValidator
-      annotations:
-        description: SPC Jailed validator *{{ $labels.moniker }}*
-        summary: Jailed validator
-      expr: sum(cosmos_validators_jailed{app="spc-cosmos-exporter"}) by (moniker) > 0
+      expr: |
+        sum without (address, app, instance, job) (
+          max_over_time(cosmos_validators_jailed{app="spc-cosmos-exporter"}[15m])
+        ) > 0
+        OR absent(cosmos_validators_jailed{app="spc-cosmos-exporter"})
+      for: 15m
       labels:
         severity: critical
+      annotations:
+        summary: "Validator(s) jailed: *{{ $labels.moniker }}*"
+        description: "*{{ $labels.moniker }}* has been jailed (or metric missing) for ≥15m."
     - alert: SpcByzantineValidator
-      annotations:
-        description: Byzantine validator(s) on SPC ({{ $value }})
-        summary: SPC Byzantine validator
-      expr: sum(cometbft_consensus_byzantine_validators{app="spc"}) > 0
+      expr: |
+        sum without(instance, job) (
+          max_over_time(cometbft_consensus_byzantine_validators{app="spc"}[15m])
+        ) > 0
+        OR absent(cometbft_consensus_byzantine_validators{app="spc"})
+      for: 15m
       labels:
         severity: critical
-    - alert: SpcMissedBlocks
       annotations:
-        description: "*{{ $labels.moniker }}* missed *{{ $value }}* blocks on *SPC* in 5m"
-        summary: SPC Missed more than 10 blocks in the last 5m
-      expr: delta(cosmos_validators_missed_blocks{app="spc-cosmos-exporter"}[5m]) > 10
-      labels:
-        severity: critical
-    - alert: SpcNotProducingBlocks
-      annotations:
-        description: "SPC didn't produced blocks in the last minute"
-        summary: SPC no blocks produced in the last minute
-      expr: delta(cometbft_consensus_height{app="spc"}[1m]) < 1
-      labels:
-        severity: critical
-    - alert: SpcMempoolTooBig
-      annotations:
-        description: Mempool for SPC is *{{ $value }}*
-        summary: SPC Mempool bigger than 300
-      expr: sum(cometbft_mempool_size{app="spc"}) > 300
+        summary: "Byzantine validator(s) detected"
+        description: "At least one validator reported as byzantine in the last 15 minutes (or metric missing). Count: {{$value}}"
+    - alert: SpcMissedBlocksWarning
+      expr: |
+        sum without (address, app, instance, job)(
+          clamp_min(
+            increase(cosmos_validators_missed_blocks{app="spc-cosmos-exporter"}[5m]), 0
+          )
+        ) > 10
+        OR absent(cosmos_validators_missed_blocks{app="spc-cosmos-exporter"})
+      for: 5m
       labels:
         severity: warning
+      annotations:
+        summary: "{{$labels.moniker}} missed >10 blocks in 5m"
+        description: "Validator {{$labels.moniker}} missed {{$value}} blocks over 5 minutes (or metric missing)."
+    - alert: SpcMissedBlocks
+      expr: |
+        sum without (address, app, instance, job)(
+          clamp_min(
+            increase(cosmos_validators_missed_blocks{app="spc-cosmos-exporter"}[15m]), 0
+          )
+        ) > 50
+        OR absent(cosmos_validators_missed_blocks{app="spc-cosmos-exporter"})
+      for: 15m
+      labels:
+        severity: critical
+      annotations:
+        summary: "{{$labels.moniker}} missed a high number of blocks"
+        description: "Validator {{$labels.moniker}} missed {{$value}} blocks in 15 minutes (or metric missing)."
+    - alert: SpcNotProducingBlocksWarning
+      expr: |
+        (
+          sum without(instance, job) (
+            increase(cometbft_consensus_height{app="spc"}[5m])
+          ) == 0
+        )
+        OR absent(cometbft_consensus_height{app="spc"})
+      for: 5m
+      labels:
+        severity: warning
+      annotations:
+        summary: "SPC has not produced blocks for ≥5 minutes"
+        description: "No increase in cometbft_consensus_height over the last 5m (or the metric is missing)."
+    - alert: SpcNotProducingBlocks
+      expr: |
+        (
+          sum without(instance, job) (
+            increase(cometbft_consensus_height{app="spc"}[15m])
+          ) == 0
+        )
+        OR absent(cometbft_consensus_height{app="spc"})
+      for: 15m
+      labels:
+        severity: critical
+      annotations:
+        summary: "SPC has not produced blocks for ≥15 minutes"
+        description: "No increase in cometbft_consensus_height over the last 15m (or the metric is missing)."
+    - alert: SpcMempoolTooBig
+      expr: |
+        (
+          max_over_time(
+            cometbft_mempool_size{app="spc"}[15m]
+          )
+          > 300
+        )
+        OR absent(cometbft_mempool_size{app="spc"})
+      for: 15m
+      labels:
+        severity: critical
+      annotations:
+        summary: "SPC mempool critically large on {{$labels.instance}}"
+        description: "Mempool stuck above 300 tx for ≥15m (or metric missing). Current: {{$value}}."

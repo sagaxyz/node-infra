@@ -9,8 +9,20 @@ spec:
     rules:
     - alert: BlockscoutIndexingFallingBehind
       annotations:
-        description: Indexing of *{{ $labels.chainId }}* is only *{{ $value }}%*
-        summary: Indexing is behind 95%
-      expr: sum(blockscout_total_blocks) by (chainId) / sum(cometbft_consensus_height) by (chainId) * 100 < 95
+        description: Indexer is *{{ $value }}* blocks behind (or metrics missing) for ≥20m.
+        summary: Indexing is behind on *{{ $labels.chainId }}*
+      expr: |
+        clamp_min(
+          sum by (chainId) (
+            max_over_time(cometbft_consensus_height[20m])
+          )
+          -
+          sum by (chainId) (
+            max_over_time(blockscout_total_blocks[20m])
+          ),
+          0
+        ) > 1000
+        OR absent(blockscout_total_blocks) OR absent(cometbft_consensus_height)
+      for: 20m
       labels:
         severity: warning
