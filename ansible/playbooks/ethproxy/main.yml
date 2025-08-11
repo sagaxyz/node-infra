@@ -1,0 +1,19 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}
+        state: directory
+        mode: '0744'
+    - name: Generate ethproxy multi-chainlet spec
+      ansible.builtin.template:
+        src: config/ethproxy-multi.yml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/deploy-ethproxy.yml
+        mode: '0644'
+      when:
+        - ethproxy is defined

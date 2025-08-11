@@ -1,0 +1,127 @@
+---
+# Generate resources per enabled chainlet
+{% set chainlets = (ethproxy.chainlets if ethproxy is defined and ethproxy.chainlets is defined else []) %}
+{% for chainlet in chainlets if (chainlet.enabled | default(false)) %}
+{% set slug = (chainlet.chain_id | lower | replace('_','-')) %}
+{% set ns = 'saga-' + slug %}
+{% set version = (chainlet.version | default(ethproxy.version) | mandatory) %}
+{% set _rpc_suffixes = rpc_url_suffixes if rpc_url_suffixes is defined else ( [rpc_generic_url_suffix, url_suffix] if rpc_generic_url_suffix is defined else ( [url_suffix] if url_suffix is defined else [] ) ) %}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ ns }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ethproxy-config-{{ slug }}
+  namespace: {{ ns }}
+data:
+  ethproxy.yml: |
+{% filter indent(width=4, first=True) %}
+{% set cosmos_url_ro = chainlet.cosmos_url_ro %}
+{% set cosmos_url_rw = chainlet.cosmos_url_rw %}
+{% set evm_url = chainlet.evm_url %}
+{% set chain_id = chainlet.chain_id %}
+{% include 'includes/ethproxy.yml.j2' %}
+
+{% endfilter %}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ethproxy-secrets-{{ slug }}
+  namespace: {{ ns }}
+stringData:
+  FEEPAYER_KEYS: "{{ chainlet.feepayer_private_keys | join(',') }}"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ethproxy
+  namespace: {{ ns }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ethproxy
+  template:
+    metadata:
+      labels:
+        app: ethproxy
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      containers:
+      - name: ethproxy
+        image: "sagaxyz/ethproxy:{{ version }}"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          INDEX=${HOSTNAME##*-}
+          export ETHPROXY_SERVICES_FEE_PAYER_PRIVATE_KEYS=$(echo $FEEPAYER_KEYS | tr ',' '\n' | sed -n "$((INDEX+1))p")
+          exec /usr/bin/ethproxy -config /etc/saga/ethproxy/ethproxy.yml
+        envFrom:
+        - secretRef:
+            name: ethproxy-secrets-{{ slug }}
+        ports:
+        - containerPort: 8545
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/saga/ethproxy
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1"
+          limits:
+            memory: "2Gi"
+            cpu: "2"
+      volumes:
+      - name: config-volume
+        configMap:
+          name: ethproxy-config-{{ slug }}
+          items:
+          - key: ethproxy.yml
+            path: ethproxy.yml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ethproxy
+  namespace: {{ ns }}
+spec:
+  selector:
+    app: ethproxy
+  ports:
+  - port: 8545
+    targetPort: 8545
+{% if _rpc_suffixes | length > 0 %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "ingress-ethproxy-jsonrpc"
+  namespace: {{ ns }}
+  annotations:
+    saga.xyz/ingress-protocol: "jsonrpc"
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in _rpc_suffixes %}
+    - host: "{{ slug }}-ethproxy.jsonrpc.{{ url }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ethproxy
+                port:
+                  number: 8545
+{% endfor %}
+{% endif %}
+
+{% endfor %}

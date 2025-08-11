@@ -362,3 +362,11 @@
       when:
         - ibc_tester is defined
         - ibc_tester.enabled | bool
+
+    - name: Apply ethproxy deployment spec
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/deploy-ethproxy.yml
+      when:
+        - ethproxy is defined
