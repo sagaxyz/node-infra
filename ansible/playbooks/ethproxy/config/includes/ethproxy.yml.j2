@@ -1,7 +1,7 @@
 loglevel: "trace"
-node_rpc: "{{ cosmos_url_ro | default('tcp://chainlet-ro:26657') }}"
-node_json_rpc: "{{ evm_url | default('http://chainlet-ro:8545') }}"
-chain_id: "{{ chain_id | default(dex_chain_id) }}"
+node_rpc: "{{ chainlet.cosmos_url_ro | default('tcp://chainlet:26657') }}"
+node_json_rpc: "{{ chainlet.evm_url | default('http://chainlet:8545') }}"
+chain_id: "{{ chainlet.chain_id }}"
 account_address_prefix: "saga"
 json_rpc_request_timeout: "10s"
 server:
@@ -22,7 +22,7 @@ services:
     enabled: true
     private_keys:
       - "redacted"
-    broadcast_node_rpc: "{{ cosmos_url_rw | default('tcp://chainlet-rw:26657') }}"
+    broadcast_node_rpc: "{{ chainlet.cosmos_url_rw | default('tcp://chainlet:26657') }}"
     param_fetch_interval: "3s"
     check_gas:
       enabled: true
