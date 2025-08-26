@@ -10,3 +10,5 @@
   when: alertmanager is defined
 - import_playbook: playbooks/lil/main.yml
   when: dex_balance_monitor_enabled
+- import_playbook: playbooks/ethproxy/main.yml
+  when: ethproxy is defined

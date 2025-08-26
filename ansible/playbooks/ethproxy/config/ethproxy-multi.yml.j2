@@ -1,0 +1,118 @@
+---
+# Generate resources per enabled chainlet
+{% for chainlet in ethproxy_chainlets | default([]) %}
+---
+apiVersion: v1
+kind: Namespace
+metadata:
+  name: {{ chainlet.ethproxy_namespace }}
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: ethproxy-config-{{ chainlet.ethproxy_slug }}
+  namespace: {{ chainlet.ethproxy_namespace }}
+data:
+  ethproxy.yml: |
+{% filter indent(width=4, first=True) %}
+{% include 'includes/ethproxy.yml.j2' %}
+ 
+{% endfilter %}
+---
+apiVersion: v1
+kind: Secret
+metadata:
+  name: ethproxy-secrets-{{ chainlet.ethproxy_slug }}
+  namespace: {{ chainlet.ethproxy_namespace }}
+stringData:
+  FEEPAYER_KEYS: "{{ chainlet.feepayer_private_keys | join(',') }}"
+---
+apiVersion: apps/v1
+kind: StatefulSet
+metadata:
+  name: ethproxy
+  namespace: {{ chainlet.ethproxy_namespace }}
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: ethproxy
+  template:
+    metadata:
+      labels:
+        app: ethproxy
+      annotations:
+        prometheus.io/scrape: "true"
+        prometheus.io/port: "9090"
+    spec:
+      containers:
+      - name: ethproxy
+        image: "sagaxyz/ethproxy:{{ chainlet.ethproxy_version }}"
+        command:
+        - /bin/sh
+        - -c
+        - |
+          INDEX=${HOSTNAME##*-}
+          export ETHPROXY_SERVICES_FEE_PAYER_PRIVATE_KEYS=$(echo $FEEPAYER_KEYS | tr ',' '\n' | sed -n "$((INDEX+1))p")
+          exec /usr/bin/ethproxy -config /etc/saga/ethproxy/ethproxy.yml
+        envFrom:
+        - secretRef:
+            name: ethproxy-secrets-{{ chainlet.ethproxy_slug }}
+        ports:
+        - containerPort: 8545
+        volumeMounts:
+        - name: config-volume
+          mountPath: /etc/saga/ethproxy
+        resources:
+          requests:
+            memory: "1Gi"
+            cpu: "1"
+          limits:
+            memory: "2Gi"
+            cpu: "2"
+      volumes:
+        - name: config-volume
+          configMap:
+            name: ethproxy-config-{{ chainlet.ethproxy_slug }}
+            items:
+              - key: ethproxy.yml
+                path: ethproxy.yml
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: ethproxy
+  namespace: {{ chainlet.ethproxy_namespace }}
+spec:
+  selector:
+    app: ethproxy
+  ports:
+  - port: 8545
+    targetPort: 8545
+{% if ethproxy_rpc_suffixes | length > 0 %}
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: "ingress-ethproxy-jsonrpc"
+  namespace: {{ chainlet.ethproxy_namespace }}
+  annotations:
+    saga.xyz/ingress-protocol: "jsonrpc"
+spec:
+  ingressClassName: nginx
+  rules:
+{% for url in ethproxy_rpc_suffixes %}
+    - host: "{{ chainlet.ethproxy_slug }}-ethproxy.jsonrpc.{{ url }}"
+      http:
+        paths:
+          - path: /
+            pathType: Prefix
+            backend:
+              service:
+                name: ethproxy
+                port:
+                  number: 8545
+{% endfor %}
+{% endif %}
+
+{% endfor %}

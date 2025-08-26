@@ -1,0 +1,54 @@
+- hosts: eks_clusters
+  gather_facts: false
+
+  vars_files:
+    - vars/main.yml
+
+  tasks:
+    - name: Init ethproxy_chainlets list
+      ansible.builtin.set_fact:
+        ethproxy_chainlets: []
+      when: ethproxy is defined
+
+    - name: Build ethproxy chainlets data
+      ansible.builtin.set_fact:
+        ethproxy_chainlets: >-
+          {{ ethproxy_chainlets + [
+              item | combine({
+                'ethproxy_slug': (item.chain_id | lower | replace('_','-')),
+                'ethproxy_namespace': ('saga-' + (item.chain_id | lower | replace('_','-'))),
+                'ethproxy_version': (item.version | default(ethproxy.version))
+              })
+            ]
+          }}
+      loop: "{{ (ethproxy.chainlets | default([])) | selectattr('enabled','defined') | selectattr('enabled') | list }}"
+      loop_control:
+        label: "{{ item.chain_id }}"
+      when: ethproxy is defined
+
+    - name: Compute ethproxy RPC URL suffixes
+      ansible.builtin.set_fact:
+        ethproxy_rpc_suffixes: >-
+          {{
+            rpc_url_suffixes if (rpc_url_suffixes is defined)
+            else (
+              ([rpc_generic_url_suffix, url_suffix]) if (rpc_generic_url_suffix is defined)
+              else (([url_suffix]) if (url_suffix is defined) else [])
+            )
+          }}
+      when: ethproxy is defined
+    - name: Create a directory if it does not exist
+      ansible.builtin.file:
+        path: ~/.ansible/deployments/{{ eks_cluster_name }}
+        state: directory
+        mode: '0744'
+    - name: Generate ethproxy multi-chainlet spec
+      vars:
+        ethproxy_chainlets: "{{ ethproxy_chainlets }}"
+        ethproxy_rpc_suffixes: "{{ ethproxy_rpc_suffixes }}"
+      ansible.builtin.template:
+        src: config/ethproxy-multi.yml.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/deploy-ethproxy.yml
+        mode: '0644'
+      when:
+        - ethproxy is defined
