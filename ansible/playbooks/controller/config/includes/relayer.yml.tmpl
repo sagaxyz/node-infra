@@ -70,6 +70,10 @@ spec:
               value: "false"
             - name: CONSUMER_GAS_PRICE
               value: "%%% ssc.consumer_gas_price %%%"
+            - name: CONSUMER_GRPC
+              value: "%%% ssc.grpc %%%"
+            - name: CONSUMER_WS
+              value: "wss://%%% ssc.rpc | regex_replace('^(http|https)://', '') %%%/websocket"
 {{ else }}
             - name: CONSUMER_CHAIN_ID
               value: "{{ .ChainId }}"
@@ -77,6 +81,10 @@ spec:
               value: "{{ .CoinDenom }}"
             - name: CONSUMER_RPC
               value: "http://{{ .Name }}.{{ .Namespace }}.svc.cluster.local:26657"
+            - name: CONSUMER_GRPC
+              value: "http://{{ .Name }}.{{ .Namespace }}.svc.cluster.local:9090"
+            - name: CONSUMER_WS
+              value: "ws://{{ .Name }}.{{ .Namespace }}.svc.cluster.local:26657/websocket"
 {{ end }}
             - name: CONSUMER_MNEMONIC
               value: "%%% validator_mnemonic %%%"
@@ -86,6 +94,10 @@ spec:
               value: "{{ .HubDenom }}"
             - name: HUB_RPC
               value: "http://{{ .Name }}.{{ .HubNamespace }}.svc.cluster.local:26657"
+            - name: HUB_GRPC
+              value: "http://{{ .Name }}.{{ .HubNamespace }}.svc.cluster.local:9090"
+            - name: HUB_WS
+              value: "http://{{ .Name }}.{{ .HubNamespace }}.svc.cluster.local:26657/websocket"
             - name: HUB_API
               value: "http://{{ .Name }}.{{ .HubNamespace }}.svc.cluster.local:1317"
             - name: HUB_MNEMONIC
