@@ -73,7 +73,7 @@ spec:
             - name: CONSUMER_GRPC
               value: "%%% ssc.grpc %%%"
             - name: CONSUMER_WS
-              value: "wss://%%% ssc.rpc | regex_replace('^(http|https)://', '') %%%/websocket"
+              value: "ws://%%% ssc.rpc | regex_replace('^(http|https)://', '') %%%/websocket"
 {{ else }}
             - name: CONSUMER_CHAIN_ID
               value: "{{ .ChainId }}"
