@@ -45,6 +45,7 @@ eks_clusters:
     rpc_enabled: false
     chains_monitor_enabled: false
     publicly_expose_grafana: false
+    indexer_enabled: false
 
     # Disks
     pruning_strategy: "default"

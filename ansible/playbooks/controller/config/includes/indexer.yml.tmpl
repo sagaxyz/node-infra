@@ -1,0 +1,74 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iss-node-template
+  namespace: "{{ .Namespace }}"
+data:
+  iss-node-config.yml: |
+{% filter indent(width=4) %}
+    {% include 'includes/iss_node_config.yml.tmpl' %}
+{% endfilter %}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "iss-node"
+  namespace: "{{ .Namespace }}"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: "iss-node"
+  template:
+    metadata:
+      labels:
+        app: "iss-node"
+    spec:
+      containers:
+        - name: node
+          image: your-registry/iss-app:latest
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: iss-node-template
+            mountPath: /app/config/iss-node-config.yml
+            subPath: iss-node-config.yml
+          args:
+            - --db-schema=iss
+            - -f=/app/config/iss-node-config.yml
+            - --multi-chain
+            - --historical=false
+            - --workers=5
+            - --batch-size=15
+          env:
+            - name: DB_USER
+              value: postgres
+            - name: DB_PASS
+              value: postgres
+            - name: DB_DATABASE
+              value: postgres
+            - name: DB_HOST
+              value: postgres
+            - name: DB_PORT
+              value: "5432"
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: iss-node-template
+          configMap:
+            name: iss-node-template
