@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: iss-worker
-          image: {{ .IssWorkerImage }}
+          image: {{ or .IssWorkerImage "sagaxyz/iss-cosmos-worker:latest" }}
           imagePullPolicy: IfNotPresent
           volumeMounts:
           - name: iss-node-template
