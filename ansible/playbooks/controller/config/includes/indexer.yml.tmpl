@@ -7,7 +7,7 @@ metadata:
 data:
   iss-node-config.yml: |
 {% filter indent(width=4) %}
-    {% include 'includes/iss_node_config.yml.tmpl' %}
+    {% include 'includes/iss-cosmos-node.yml.tmpl' %}
 {% endfilter %}
 ---
 apiVersion: apps/v1
@@ -28,16 +28,16 @@ spec:
         app: "iss-node"
     spec:
       containers:
-        - name: node
-          image: your-registry/iss-app:latest
+        - name: iss-worker
+          image: {{ .IssWorkerImage }}
           imagePullPolicy: IfNotPresent
           volumeMounts:
           - name: iss-node-template
-            mountPath: /app/config/iss-node-config.yml
+            mountPath: /app/iss-node-config.yml
             subPath: iss-node-config.yml
           args:
             - --db-schema=iss
-            - -f=/app/config/iss-node-config.yml
+            - -f=/app/iss-node-config.yml
             - --multi-chain
             - --historical=false
             - --workers=5
