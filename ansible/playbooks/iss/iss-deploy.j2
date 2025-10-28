@@ -66,11 +66,11 @@ spec:
         image: subquerynetwork/subql-query:latest
         env:
         - name: DB_USER
-          value: {{ iss_db.user }}
+          value: {{ indexer_db.user }}
         - name: DB_PASS
-          value: {{ iss_db.password }}
+          value: {{ indexer_db.password }}
         - name: DB_DATABASE
-          value: {{ iss_db.db_name }}
+          value: {{ db_instance_identifier }}
         - name: DB_HOST
           value: iss-db-ro
         - name: DB_PORT
