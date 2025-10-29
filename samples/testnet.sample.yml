@@ -73,6 +73,10 @@ eks_clusters:
       - st1.sagarpc.io
       - stsrv1.sagarpc.io
 
+    # Indexer
+    iss_node_workers: 5
+    iss_node_batch_size: 15
+
   hosts:
     # === Validator Specific Variables ===
     eks-cluster-name: # CHANGE IT to desired EKS cluster name. E.g.: <your_moniker>-spc-testnet:

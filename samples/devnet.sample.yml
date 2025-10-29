@@ -59,6 +59,10 @@ eks_clusters:
     # DNS
     spc_external_address_host: "spc.{{ moniker }}.{{ chain_id }}.{{ route53_zone }}"
 
+    # Indexer
+    iss_node_workers: 5
+    iss_node_batch_size: 15
+
   hosts:
     # === Validator Specific Variables ===
     eks-cluster-name: # CHANGE IT to desired EKS cluster name. E.g.: <your_moniker>-spc-devnet:

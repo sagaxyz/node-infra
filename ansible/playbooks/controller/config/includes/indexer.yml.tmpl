@@ -40,8 +40,8 @@ spec:
             - -f=/app/iss-node-config.yml
             - --multi-chain
             - --historical=false
-            - --workers=5
-            - --batch-size=15
+            - --workers=%%% iss_node_workers %%%
+            - --batch-size=%%% iss_node_batch_size %%%
           env:
             - name: DB_USER
               value: %%% indexer_db.user %%%
