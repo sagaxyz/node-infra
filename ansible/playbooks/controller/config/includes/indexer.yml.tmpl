@@ -29,7 +29,7 @@ spec:
     spec:
       containers:
         - name: iss-worker
-          image: {{ or .IssWorkerImage "sagaxyz/iss-cosmos-worker:latest" }}
+          image: us-central1-docker.pkg.dev/saga-product-engineering/saga-ui-engineering/iss-cosmos-worker:%%%versions:iss_cosmos_worker%%%
           imagePullPolicy: IfNotPresent
           volumeMounts:
           - name: iss-node-template
@@ -44,15 +44,15 @@ spec:
             - --batch-size=15
           env:
             - name: DB_USER
-              value: postgres
+              value: %%% indexer_db.user %%%
             - name: DB_PASS
-              value: postgres
+              value: %%% indexer_db.password %%%
             - name: DB_DATABASE
-              value: postgres
+              value: iss
             - name: DB_HOST
-              value: postgres
+              value: %%% db_endpoint.address %%%
             - name: DB_PORT
-              value: "5432"
+              value: %%% db_endpoint.port %%%
           ports:
             - name: http
               containerPort: 3000
