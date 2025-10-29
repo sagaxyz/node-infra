@@ -13,7 +13,7 @@ schema:
 network:
   chainId: "{{ .ChainId }}"
   endpoint:
-    - {{ or .ArchiveRpcUrl "http://chainlet:26657" }}
+    - "http://chainlet:26657"
   chaintypes:
     google.protobuf:
       file: proto/google/protobuf/any.proto
