@@ -24,6 +24,7 @@ eks_clusters:
       spc: "1.0.0-alpha.5"
       controller: "1.0.0-alpha.2"
       relayer: "0.2.2"
+      iss_cosmos_worker: "latest"
 
     # EKS
     eks_kubernetes_version: "1.31"
