@@ -32,6 +32,7 @@ eks_clusters:
       infrastructure: "release/mainnet"
       spc: "0.3.0-beta"
       controller: "0.10.0-alpha.2"
+      iss_cosmos_worker: "latest"
 
     # EKS
     eks_kubernetes_version: "1.31"
@@ -58,6 +59,7 @@ eks_clusters:
     rpc_enabled: false
     chains_monitor_enabled: false
     publicly_expose_grafana: false
+    iss_indexer_enabled: false
 
     # Disks
     pruning_strategy: "default"
@@ -75,6 +77,10 @@ eks_clusters:
     sync_rpc_domains:
       - spsrv1.sagarpc.io
       - spsrv2.sagarpc.io
+
+    # ISS indexer
+    iss_node_workers: 5
+    iss_node_batch_size: 15
 
   hosts:
     # === Validator Specific Variables ===

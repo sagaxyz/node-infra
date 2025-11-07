@@ -1,0 +1,74 @@
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: iss-node-template
+  namespace: "{{ .Namespace }}"
+data:
+  iss-node-config.yml: |
+{% filter indent(width=4) %}
+    {% include 'includes/iss-cosmos-node.yml.tmpl' %}
+{% endfilter %}
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: "iss-node"
+  namespace: "{{ .Namespace }}"
+spec:
+  replicas: 1
+  strategy:
+    type: Recreate
+  selector:
+    matchLabels:
+      app: "iss-node"
+  template:
+    metadata:
+      labels:
+        app: "iss-node"
+    spec:
+      containers:
+        - name: iss-worker
+          image: us-central1-docker.pkg.dev/saga-product-engineering/saga-ui-engineering/iss-cosmos-worker:%%%versions:iss_cosmos_worker%%%
+          imagePullPolicy: IfNotPresent
+          volumeMounts:
+          - name: iss-node-template
+            mountPath: /app/iss-node-config.yml
+            subPath: iss-node-config.yml
+          args:
+            - --db-schema=iss
+            - -f=/app/iss-node-config.yml
+            - --multi-chain
+            - --historical=false
+            - --workers=%%% iss_node_workers %%%
+            - --batch-size=%%% iss_node_batch_size %%%
+          env:
+            - name: DB_USER
+              value: %%% indexer_db.user %%%
+            - name: DB_PASS
+              value: %%% indexer_db.password %%%
+            - name: DB_DATABASE
+              value: iss
+            - name: DB_HOST
+              value: %%% db_endpoint.address %%%
+            - name: DB_PORT
+              value: %%% db_endpoint.port %%%
+          ports:
+            - name: http
+              containerPort: 3000
+          readinessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 5
+            periodSeconds: 5
+          livenessProbe:
+            httpGet:
+              path: /ready
+              port: 3000
+            initialDelaySeconds: 15
+            periodSeconds: 10
+      volumes:
+        - name: iss-node-template
+          configMap:
+            name: iss-node-template

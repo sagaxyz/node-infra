@@ -1,0 +1,92 @@
+specVersion: 1.0.0
+version: 0.0.1
+name: "{{ .ChainId }}"
+runner:
+  node:
+    name: "@subql/node-cosmos"
+    version: ">=3.0.0"
+  query:
+    name: "@subql/query"
+    version: "*"
+schema:
+  file: schema.graphql
+network:
+  chainId: "{{ .ChainId }}"
+  endpoint:
+    - "http://chainlet:26657"
+  chaintypes:
+    google.protobuf:
+      file: proto/google/protobuf/any.proto
+      messages:
+        - Any
+dataSources:
+  - kind: cosmos/Runtime
+    startBlock: 1
+    mapping:
+      file: ./dist/index.js
+      handlers:
+        # --- BANK EVENT ---
+        - handler: handleBankEvent
+          kind: cosmos/EventHandler
+          filter:
+            type: "transfer"
+
+        # --- IBC CLIENT ---
+        - handler: handleCreateClientMsg
+          kind: cosmos/MessageHandler
+          filter:
+            type: "/ibc.core.client.v1.MsgCreateClient"
+
+        # --- IBC CONNECTION ---
+        - handler: handleConnOpenInit
+          kind: cosmos/EventHandler
+          filter:
+            type: "connection_open_init"
+        - handler: handleConnOpenTry
+          kind: cosmos/EventHandler
+          filter:
+            type: "connection_open_try"
+        - handler: handleConnOpenAck
+          kind: cosmos/EventHandler
+          filter:
+            type: "connection_open_ack"
+        - handler: handleConnOpenConfirm
+          kind: cosmos/EventHandler
+          filter:
+            type: "connection_open_confirm"
+
+        # --- IBC CHANNEL ---
+        - handler: handleChanOpenInit
+          kind: cosmos/EventHandler
+          filter:
+            type: "channel_open_init"
+        - handler: handleChanOpenTry
+          kind: cosmos/EventHandler
+          filter:
+            type: "channel_open_try"
+        - handler: handleChanOpenAck
+          kind: cosmos/EventHandler
+          filter:
+            type: "channel_open_ack"
+        - handler: handleChanOpenConfirm
+          kind: cosmos/EventHandler
+          filter:
+            type: "channel_open_confirm"
+
+        # --- IBC EVENT ---
+        - handler: handleSendPacket
+          kind: cosmos/EventHandler
+          filter:
+            type: "send_packet"
+        - handler: handleRecvPacket
+          kind: cosmos/EventHandler
+          filter:
+            type: "recv_packet"
+        - handler: handleAckPacket
+          kind: cosmos/EventHandler
+          filter:
+            type: "acknowledge_packet"
+        - handler: handleTimeoutPacket
+          kind: cosmos/EventHandler
+          filter:
+            type: "timeout_packet"
