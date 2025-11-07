@@ -15,6 +15,7 @@ deployment:
   deploy_timeout: "10m"
   deploy_parallel: 8
   kube:
+    enable_load_balancer: true
     in_cluster_config: true
     config_path: "/etc/saga/kube/config"
     template_path: "/etc/saga/controller/kube/chainlet.yml.tmpl"

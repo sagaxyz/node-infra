@@ -72,6 +72,7 @@ eks_clusters:
     sync_rpc_domains:
       - st1.sagarpc.io
       - stsrv1.sagarpc.io
+    state_sync_enabled: true
 
     # ISS indexer
     iss_node_workers: 5

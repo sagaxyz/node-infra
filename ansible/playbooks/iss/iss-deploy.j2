@@ -27,15 +27,6 @@ spec:
 apiVersion: v1
 kind: Service
 metadata:
-  name: iss-db-stats
-  namespace: iss
-spec:
-  type: ExternalName
-  externalName: "{{db_stats_endpoint.address}}"
----
-apiVersion: v1
-kind: Service
-metadata:
   name: iss-grapqhl-engine
   namespace: iss
 spec:
@@ -64,17 +55,19 @@ spec:
       containers:
       - name: iss-grapqhl-engine
         image: subquerynetwork/subql-query:latest
+        args:
+          - --name=iss
         env:
         - name: DB_USER
-          value: {{ indexer_db.user }}
+          value: "{{ indexer_db.user }}"
         - name: DB_PASS
-          value: {{ indexer_db.password }}
+          value: "{{ indexer_db.password }}"
         - name: DB_DATABASE
-          value: iss
+          value: "iss"
         - name: DB_HOST
-          value: iss-db-ro
+          value: "iss-db-ro"
         - name: DB_PORT
-          value: {{ db_replica_endpoint.port }}
+          value: "{{ db_replica_endpoint.port }}"
         resources:
           requests:
             memory: 500Mi

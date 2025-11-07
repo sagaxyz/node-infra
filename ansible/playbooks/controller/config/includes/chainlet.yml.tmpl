@@ -127,7 +127,7 @@ spec:
           - name: SNAPSHOT_TRUST_INTERVAL
             value: "%%% snapshot_trust_interval %%%"
 {% endif %}
-{% if sync_rpc_domains is defined %}
+{% if state_sync_enabled %}
           - name: SYNC_RPC
             value: "{% for domain in sync_rpc_domains %}https://{{ .ChainletName }}-{{ .ChainIdNumber }}-1-cosmosrpc.jsonrpc.%%% domain %%%:443{% if not loop.last %},{% endif %}{% endfor %}"
 {% endif %}

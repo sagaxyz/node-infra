@@ -1,12 +1,19 @@
+- name: Gather OIDC provider info
+  import_playbook: ../oidc/provision.yml
+
+- name: Provision chainlet roles
+  import_playbook: ../roles/apply.yml
+
 - hosts: eks_clusters
   gather_facts: false
 
   vars:
-    - chainlets_dir: "~/.ansible/deployments/{{ eks_cluster_name }}/chainlets"
+    chainlets_dir: "~/.ansible/deployments/{{ eks_cluster_name }}/chainlets"
   vars_files:
     - vars/main.yml
 
   tasks:
+
     - name: Create chainlets config directory if it does not exist
       ansible.builtin.file:
         path: ~/.ansible/deployments/{{ eks_cluster_name }}/chainlets
