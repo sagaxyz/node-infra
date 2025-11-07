@@ -100,32 +100,6 @@
         db_subnet_group_name: "{{ subnet_group_info.subnet_group.db_subnet_group_name }}"
       register: rds_replica_info
 
-    - name: Create RDS instance (stats)
-      amazon.aws.rds_instance:
-        state: present
-        aws_profile: "{{ aws_profile }}"
-        aws_region: "{{ aws_region }}"
-        multi_az: false
-        publicly_accessible: false
-        vpc_security_group_ids:
-          - "{{ security_group_info.group_id }}"
-        db_subnet_group_name: "{{ db_subnet_group_name }}"
-        engine: postgres
-        engine_version: "18.0"
-        auto_minor_version_upgrade: false
-        db_instance_identifier: "{{ db_instance_identifier }}-stats-1"
-        instance_type: "{{ indexer_db.instance_type_stats }}"
-        master_user_password: "{{ indexer_db.password }}"
-        master_username: "{{ indexer_db.user }}"
-        port: 5432
-        allocated_storage: "{{ indexer_db.allocated_storage_gb_stats }}"
-        skip_final_snapshot: false
-        backup_retention_period: "0"
-      vars:
-        vpc_security_group_ids: "{{ json_info | json_query('securityGroupIds') }}"
-        db_subnet_group_name: "{{ subnet_group_info.subnet_group.db_subnet_group_name }}"
-      register: rds_info_stats
-
     - name: Set db endpoint info
       set_fact:
         db_endpoint: "{{ rds_info.endpoint }}"
@@ -133,10 +107,6 @@
     - name: Set db endpoint info (read-only)
       set_fact:
         db_replica_endpoint: "{{ rds_replica_info.endpoint }}"
-
-    - name: Set db endpoint info (stats)
-      set_fact:
-        db_stats_endpoint: "{{ rds_info_stats.endpoint }}"
 
     - name: Generate iss resources spec
       ansible.builtin.template:

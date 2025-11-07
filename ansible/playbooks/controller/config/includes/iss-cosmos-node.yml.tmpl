@@ -25,19 +25,11 @@ dataSources:
     mapping:
       file: ./dist/index.js
       handlers:
-        # --- BLOCK ---
-        - kind: cosmos/BlockHandler
-          handler: handleBlockBalances
-
         # --- BANK EVENT ---
         - handler: handleBankEvent
           kind: cosmos/EventHandler
           filter:
             type: "transfer"
-        - handler: handleBankEvent
-          kind: cosmos/EventHandler
-          filter:
-            type: "coin_spent"
 
         # --- IBC CLIENT ---
         - handler: handleCreateClientMsg

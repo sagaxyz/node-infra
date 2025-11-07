@@ -46,7 +46,7 @@ eks_clusters:
     rpc_enabled: false
     chains_monitor_enabled: false
     publicly_expose_grafana: false
-    indexer_enabled: false
+    iss_indexer_enabled: true
 
     # Disks
     pruning_strategy: "default"
@@ -59,7 +59,7 @@ eks_clusters:
     # DNS
     spc_external_address_host: "spc.{{ moniker }}.{{ chain_id }}.{{ route53_zone }}"
 
-    # Indexer
+    # ISS indexer
     iss_node_workers: 5
     iss_node_batch_size: 15
 

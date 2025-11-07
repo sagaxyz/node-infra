@@ -21,14 +21,6 @@
         aws_region: "{{ aws_region }}"
         db_instance_identifier: "{{ db_instance_identifier }}-replica-1"
         skip_final_snapshot: true
-    - name: Delete RDS instance (stats)
-      amazon.aws.rds_instance:
-        state: absent
-        aws_profile: "{{ aws_profile }}"
-        aws_region: "{{ aws_region }}"
-        db_instance_identifier: "{{ db_instance_identifier }}-stats-1"
-        skip_final_snapshot: false
-        final_db_snapshot_identifier: "last{{ db_instance_identifier }}stats1"
 
     - name: Delete subnet group
       amazon.aws.rds_subnet_group:
