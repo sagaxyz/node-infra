@@ -25,19 +25,19 @@ dataSources:
     mapping:
       file: ./dist/index.js
       handlers:
-        # --- BANK EVENT ---
+        # BANK EVENT
         - handler: handleBankEvent
           kind: cosmos/EventHandler
           filter:
             type: "transfer"
 
-        # --- IBC CLIENT ---
+        # IBC CLIENT
         - handler: handleCreateClientMsg
           kind: cosmos/MessageHandler
           filter:
             type: "/ibc.core.client.v1.MsgCreateClient"
 
-        # --- IBC CONNECTION ---
+        # IBC CONNECTION
         - handler: handleConnOpenInit
           kind: cosmos/EventHandler
           filter:
@@ -55,7 +55,7 @@ dataSources:
           filter:
             type: "connection_open_confirm"
 
-        # --- IBC CHANNEL ---
+        # IBC CHANNEL
         - handler: handleChanOpenInit
           kind: cosmos/EventHandler
           filter:
@@ -73,7 +73,7 @@ dataSources:
           filter:
             type: "channel_open_confirm"
 
-        # --- IBC EVENT ---
+        # IBC EVENT
         - handler: handleSendPacket
           kind: cosmos/EventHandler
           filter:

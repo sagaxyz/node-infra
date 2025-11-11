@@ -9,6 +9,7 @@ data:
 {% filter indent(width=4) %}
     {% include 'includes/iss-cosmos-node.yml.tmpl' %}
 {% endfilter %}
+
 ---
 apiVersion: apps/v1
 kind: Deployment
@@ -29,7 +30,7 @@ spec:
     spec:
       containers:
         - name: iss-worker
-          image: us-central1-docker.pkg.dev/saga-product-engineering/saga-ui-engineering/iss-cosmos-worker:%%%versions:iss_cosmos_worker%%%
+          image: "us-central1-docker.pkg.dev/saga-product-engineering/saga-ui-engineering/iss-cosmos-worker:%%% versions.iss_cosmos_worker %%%"
           imagePullPolicy: IfNotPresent
           volumeMounts:
           - name: iss-node-template
@@ -44,15 +45,15 @@ spec:
             - --batch-size=%%% iss_node_batch_size %%%
           env:
             - name: DB_USER
-              value: %%% indexer_db.user %%%
+              value: "%%% indexer_db.user %%%"
             - name: DB_PASS
-              value: %%% indexer_db.password %%%
+              value: "%%% indexer_db.password %%%"
             - name: DB_DATABASE
               value: iss
             - name: DB_HOST
-              value: %%% db_endpoint.address %%%
+              value: iss-db.iss.svc.cluster.local
             - name: DB_PORT
-              value: %%% db_endpoint.port %%%
+              value: "5432"
           ports:
             - name: http
               containerPort: 3000

@@ -90,12 +90,7 @@ data:
   MAX_STRING_LENGTH_WITHOUT_TRIMMING: "2040"
   RE_CAPTCHA_SECRET_KEY: ""
   RE_CAPTCHA_CLIENT_KEY: ""
-{{ if $isDex }}
-  JSON_RPC: "https://{{ .ChainletName }}.jsonrpc.%%% rpc_url_suffixes[0] %%%"
-  ETHEREUM_JSONRPC_TRACE_URL: "http://{{ .Name }}:8545"
-{{ else }}
   JSON_RPC: "https://{{ .ChainletName }}-{{ .ChainIdNumber }}-1.jsonrpc.%%% rpc_url_suffixes[0] %%%"
-{{ end }}
   API_RATE_LIMIT: "50"
   API_RATE_LIMIT_BY_KEY: "50"
   API_RATE_LIMIT_BY_WHITELISTED_IP: "50"
@@ -122,13 +117,8 @@ metadata:
   name: blockscout-frontend-configmap
   namespace: "{{ .Namespace }}"
 data:
-{{ if $isDex }}
-  NEXT_PUBLIC_APP_HOST: "{{ .ChainletName }}.%%% explorer_url_suffixes[0] %%%"
-  NEXT_PUBLIC_NETWORK_RPC_URL: "https://{{ .ChainletName }}.jsonrpc.%%% rpc_url_suffixes[0] %%%"
-{{ else }}
   NEXT_PUBLIC_APP_HOST: "{{ .ChainletName }}-{{ .ChainIdNumber }}-1.%%% explorer_url_suffixes[0] %%%"
   NEXT_PUBLIC_NETWORK_RPC_URL: "https://{{ .ChainletName }}-{{ .ChainIdNumber }}-1.jsonrpc.%%% rpc_url_suffixes[0] %%%"
-{{ end }}
   NEXT_PUBLIC_APP_PORT: "443"
   NEXT_PUBLIC_AD_BANNER_PROVIDER: "none"
   NEXT_PUBLIC_AD_TEXT_PROVIDER: "none"
