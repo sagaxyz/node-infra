@@ -28,18 +28,6 @@ stringData:
 apiVersion: v1
 kind: ConfigMap
 metadata:
-  name: chainlet-scripts
-  namespace: {{ dex_service_namespace }}
-data:
-  start-node.sh: |
-{% filter indent(width=4) %}
-    {% include 'includes/start-node.sh' %}
-{% endfilter %}
-
----
-apiVersion: v1
-kind: ConfigMap
-metadata:
   name: chainlet-env
   namespace: {{ dex_service_namespace }}
 data:
@@ -58,7 +46,7 @@ metadata:
   name: ethproxy
   namespace: {{ dex_service_namespace }}
 spec:
-  replicas: 3
+  replicas: {{ dex_ethproxy_replicas }}
   selector:
     matchLabels:
       app: ethproxy
@@ -88,13 +76,7 @@ spec:
         volumeMounts:
         - name: config-volume
           mountPath: /etc/saga/ethproxy
-        resources:
-          requests:
-            memory: "6Gi"
-            cpu: "4"
-          limits:
-            memory: "12Gi"
-            cpu: "7"
+        resources: {{ dex_ethproxy_resources }}
       volumes:
       - name: config-volume
         configMap:
@@ -109,7 +91,7 @@ metadata:
   name: chainlet-rw
   namespace: {{ dex_service_namespace }}
 spec:
-  replicas: 2
+  replicas: {{ dex_chainlet_rw_replicas }}
   strategy:
     type: Recreate
   selector:
@@ -130,7 +112,8 @@ spec:
       containers:
         - image: "sagaxyz/sagaos:{{ dex_chainlet_version }}"
           name: chainlet
-          command: ["bash", "/root/start-node.sh"]
+          workingDir: /tmp
+          command: ["bash", "/root/start-fullnode.sh"]
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
@@ -148,7 +131,7 @@ spec:
               command:
                 - /bin/bash
                 - -c
-                - sagaosd status | jq -r '.SyncInfo.catching_up' | grep false
+                - sagaosd status | jq -r '(.SyncInfo // .sync_info) | .catching_up' | grep false
             initialDelaySeconds: 5
             periodSeconds: 5
             timeoutSeconds: 5
@@ -166,13 +149,7 @@ spec:
               mountPath: "/root/.sagaosd/data"
             - name: config-volume
               mountPath: "/root/.sagaosd/config"
-            - name: scripts-volume
-              mountPath: "/root/"
       volumes:
-        - name: scripts-volume
-          configMap:
-            name: chainlet-scripts
-            defaultMode: 0755
         - name: config-volume
           emptyDir: {}
   volumeClaimTemplates:
@@ -190,7 +167,7 @@ metadata:
   name: chainlet-ro
   namespace: {{ dex_service_namespace }}
 spec:
-  replicas: 3
+  replicas: {{ dex_chainlet_ro_replicas }}
   strategy:
     type: Recreate
   selector:
@@ -211,7 +188,8 @@ spec:
       containers:
         - image: "sagaxyz/sagaos:{{ dex_chainlet_version }}"
           name: chainlet
-          command: ["bash", "/root/start-node.sh"]
+          workingDir: /tmp
+          command: ["bash", "/root/start-fullnode.sh"]
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
@@ -229,7 +207,7 @@ spec:
               command:
                 - /bin/bash
                 - -c
-                - sagaosd status | jq -r '.SyncInfo.catching_up' | grep false
+                - sagaosd status | jq -r '(.SyncInfo // .sync_info) | .catching_up' | grep false
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
@@ -247,13 +225,7 @@ spec:
               mountPath: "/root/.sagaosd/data"
             - name: config-volume
               mountPath: "/root/.sagaosd/config"
-            - name: scripts-volume
-              mountPath: "/root/"
       volumes:
-        - name: scripts-volume
-          configMap:
-            name: chainlet-scripts
-            defaultMode: 0755
         - name: config-volume
           emptyDir: {}
   volumeClaimTemplates:
@@ -374,7 +346,7 @@ metadata:
   name: chainlet-archive
   namespace: {{ dex_service_namespace }}
 spec:
-  replicas: 1
+  replicas: {{ dex_chainlet_archive_replicas }}
   strategy:
     type: Recreate
   selector:
@@ -395,7 +367,8 @@ spec:
       containers:
         - image: "sagaxyz/sagaos:{{ dex_chainlet_version }}"
           name: chainlet
-          command: ["bash", "/root/start-node.sh"]
+          workingDir: /tmp
+          command: ["bash", "/root/start-fullnode.sh"]
           imagePullPolicy: Always
           envFrom:
             - configMapRef:
@@ -420,7 +393,7 @@ spec:
               command:
                 - /bin/bash
                 - -c
-                - sagaosd status | jq -r '.SyncInfo.catching_up' | grep false
+                - sagaosd status | jq -r '(.SyncInfo // .sync_info) | .catching_up' | grep false
             initialDelaySeconds: 10
             periodSeconds: 10
             timeoutSeconds: 5
@@ -438,13 +411,7 @@ spec:
               mountPath: "/root/.sagaosd/data"
             - name: config-volume
               mountPath: "/root/.sagaosd/config"
-            - name: scripts-volume
-              mountPath: "/root/"
       volumes:
-        - name: scripts-volume
-          configMap:
-            name: chainlet-scripts
-            defaultMode: 0755
         - name: config-volume
           emptyDir: {}
   volumeClaimTemplates:

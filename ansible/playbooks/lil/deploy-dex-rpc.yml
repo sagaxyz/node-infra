@@ -34,11 +34,11 @@
         src: config/dex-rpc-test.yml.j2
         dest: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-rpc-test.yml
         mode: '0644'
-      when: test_deploy_enabled
+      when: test_deploy_enabled and feepayer_private_keys_test is defined
 
     - name: Apply Dex RPC spec (test)
       kubernetes.core.k8s:
         kubeconfig: "{{ k8s_kubeconfig }}"
         state: present
         src: ~/.ansible/deployments/{{ eks_cluster_name }}/lil/dex-rpc-test.yml
-      when: test_deploy_enabled
+      when: test_deploy_enabled and feepayer_private_keys_test is defined
