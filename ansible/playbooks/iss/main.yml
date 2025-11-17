@@ -116,9 +116,22 @@
         dest: ~/.ansible/deployments/{{ eks_cluster_name }}/iss-deploy.yaml
         mode: '0644'
 
+    - name: Generate iss ingress spec
+      ansible.builtin.template:
+        src: iss-ingress.j2
+        dest: ~/.ansible/deployments/{{ eks_cluster_name }}/iss-ingress.yaml
+        mode: '0644'
+
     - name: Deploy iss resources
       kubernetes.core.k8s:
         kubeconfig: "{{ k8s_kubeconfig }}"
         state: present
         src: ~/.ansible/deployments/{{ eks_cluster_name }}/iss-deploy.yaml
+        wait: true
+
+    - name: Deploy iss ingress
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: present
+        src: ~/.ansible/deployments/{{ eks_cluster_name }}/iss-ingress.yaml
         wait: true
