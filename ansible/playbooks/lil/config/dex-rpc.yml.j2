@@ -112,7 +112,6 @@ spec:
       containers:
         - image: "sagaxyz/sagaos:{{ dex_chainlet_version }}"
           name: chainlet
-          workingDir: /tmp
           command: ["bash", "/root/start-fullnode.sh"]
           imagePullPolicy: Always
           envFrom:
@@ -188,7 +187,6 @@ spec:
       containers:
         - image: "sagaxyz/sagaos:{{ dex_chainlet_version }}"
           name: chainlet
-          workingDir: /tmp
           command: ["bash", "/root/start-fullnode.sh"]
           imagePullPolicy: Always
           envFrom:
@@ -367,7 +365,6 @@ spec:
       containers:
         - image: "sagaxyz/sagaos:{{ dex_chainlet_version }}"
           name: chainlet
-          workingDir: /tmp
           command: ["bash", "/root/start-fullnode.sh"]
           imagePullPolicy: Always
           envFrom:
