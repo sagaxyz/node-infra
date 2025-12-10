@@ -4,8 +4,9 @@ listen_grpc: ":19090"
 listen_grpc_gateway: ":18090"
 listen_prometheus: ":9000"
 sync_frequency: "5s"
-spc:
-  grpc_endpoint: "spc-internal.sagasrv-spc.svc.cluster.local:9090"
+mnemonic: "{{ validator_mnemonic | default('void') }}"
+ssc:
+  grpc_endpoint: "ssc.sagasrv-ssc.svc.cluster.local:9090"
   state_request_timeout: "10s"
   state_reload: "5s"
 deployment:
@@ -64,8 +65,8 @@ deployment:
     relayer:
       enabled: "{{ relayer_enabled }}"
       image: "sagaxyz/go-relayer:latest"
-      spc_chain_id: ""
-      spc_rpc_external_address: ""
-      spc_denom: "tsaga"
-      spc_mnemonic: ""
+      ssc_chain_id: "{{ ssc.chain_id | default('') }}"
+      ssc_rpc_external_address: "{{ ssc.rpc | default('') }}"
+      ssc_denom: "{{ ssc.denom | default('utsaga') }}"
+      ssc_mnemonic: ""
       chainlet_mnemonic: ""
