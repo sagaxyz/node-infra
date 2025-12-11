@@ -38,6 +38,26 @@ spec:
     name: http
     targetPort: 3000
 ---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  annotations:
+    kubernetes.io/ingress.class: nginx
+  name: iss-grapqhl-engine
+  namespace: iss
+spec:
+  rules:
+  - host: {{ iss_api_url }}
+    http:
+      paths:
+      - backend:
+          service:
+            name: iss-grapqhl-engine
+            port:
+              number: 3000
+        path: /
+        pathType: Prefix
+---
 apiVersion: apps/v1
 kind: Deployment
 metadata:
@@ -70,10 +90,10 @@ spec:
           value: "{{ db_replica_endpoint.port }}"
         resources:
           requests:
-            memory: 1Gi
+            memory: 500Mi
             cpu: 200m
           limits:
-            memory: 2Gi
+            memory: 1Gi
             cpu: 400m
         imagePullPolicy: IfNotPresent
         ports:
