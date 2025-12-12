@@ -1,6 +1,6 @@
 specVersion: 1.0.0
 version: 0.0.1
-name: "ssc-1"
+name: "{{ ssc.chain_id }}"
 runner:
   node:
     name: "@subql/node-cosmos"
@@ -11,7 +11,7 @@ runner:
 schema:
   file: schema.graphql
 network:
-  chainId: "ssc-1"
+  chainId: "{{ ssc.chain_id }}"
   endpoint:
     - "http://ssc:26657"
   chaintypes:
