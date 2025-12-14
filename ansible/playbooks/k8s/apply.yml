@@ -40,6 +40,7 @@
         definition: "{{ lookup('kubernetes.core.kustomize', dir='' + chainlets_dir_abs ) }}"
       vars:
         chainlets_dir_abs: "{{ chainlets_dir | expanduser }}"
+      register: controller_configmap_output
 
     - name: Apply SPC Service spec
       kubernetes.core.k8s:
@@ -170,6 +171,27 @@
         kubeconfig: "{{ k8s_kubeconfig }}"
         state: present
         src: ~/.ansible/deployments/{{ eks_cluster_name }}/controller-deployment.yml
+
+    - name: Get controller pod info
+      kubernetes.core.k8s_info:
+        kind: Pod
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        namespace: sagasrv-controller
+        label_selectors:
+          - "app = controller"
+      register: controller_pod_info
+      when: controller_configmap_output.changed | default(false)
+
+    - name: Restart controller pod when configmap changes
+      kubernetes.core.k8s:
+        kubeconfig: "{{ k8s_kubeconfig }}"
+        state: absent
+        kind: Pod
+        name: "{{ controller_pod_info.resources[0].metadata.name }}"
+        namespace: sagasrv-controller
+      when:
+        - controller_configmap_output.changed | default(false)
+        - controller_pod_info.resources | length > 0
 
     - name: Apply fluentd Deployment spec
       kubernetes.core.k8s:

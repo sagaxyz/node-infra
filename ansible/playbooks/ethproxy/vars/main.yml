@@ -1,0 +1,10 @@
+---
+# Ethproxy vars
+# This file is required by the playbook but variables are primarily defined in inventory
+
+deployment_enabled: "{{ ethproxy is defined }}"
+
+
+
+
+
