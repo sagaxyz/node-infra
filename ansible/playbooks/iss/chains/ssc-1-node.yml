@@ -12,9 +12,7 @@ schema:
   file: schema.graphql
 network:
   chainId: "{{ iss-chains.ssc.chain_id }}"
-  endpoint:
-    - "{{ iss-chains.ssc.archive_rpc }}"
-    - "http://ssc:26657"
+  endpoint: "{{ iss-chains.ssc.archive_rpcs }}"
   chaintypes:
     google.protobuf:
       file: proto/google/protobuf/any.proto
