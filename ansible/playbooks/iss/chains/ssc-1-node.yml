@@ -1,6 +1,6 @@
 specVersion: 1.0.0
 version: 0.0.1
-name: "{{ ssc.chain_id }}"
+name: "{{ iss-chains.ssc.chain_id }}"
 runner:
   node:
     name: "@subql/node-cosmos"
@@ -11,9 +11,9 @@ runner:
 schema:
   file: schema.graphql
 network:
-  chainId: "{{ ssc.chain_id }}"
+  chainId: "{{ iss-chains.ssc.chain_id }}"
   endpoint:
-    - "http://ssc:26657"
+    - "{{ iss-chains.ssc.archive_rpc }}"
   chaintypes:
     google.protobuf:
       file: proto/google/protobuf/any.proto
