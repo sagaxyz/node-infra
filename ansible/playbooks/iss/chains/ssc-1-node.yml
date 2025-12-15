@@ -14,6 +14,7 @@ network:
   chainId: "{{ iss-chains.ssc.chain_id }}"
   endpoint:
     - "{{ iss-chains.ssc.archive_rpc }}"
+    - "http://ssc:26657"
   chaintypes:
     google.protobuf:
       file: proto/google/protobuf/any.proto
