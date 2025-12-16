@@ -111,6 +111,8 @@ spec:
             value: "%%% stake_owner_address %%%"
           - name: KEYPASSWD
             value: "%%% keychain_password %%%"
+          - name: SPCPARAM_DENOM
+            value: "{{ .CoinDenom }}"
 {% if voting_period is defined %}
           - name: VOTING_PERIOD
             value: "%%% voting_period %%%"
