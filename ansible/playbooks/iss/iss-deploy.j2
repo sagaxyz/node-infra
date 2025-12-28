@@ -90,10 +90,10 @@ spec:
           value: "{{ db_replica_endpoint.port }}"
         resources:
           requests:
-            memory: 500Mi
+            memory: 1Gi
             cpu: 200m
           limits:
-            memory: 1Gi
+            memory: 2Gi
             cpu: 400m
         imagePullPolicy: IfNotPresent
         ports:
